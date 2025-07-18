@@ -1,89 +1,101 @@
 // frontend/src/App.tsx
-import React, { useEffect, useState } from 'react';
-import { login, register, getAllFlats } from './services/api'; // Import your API service
-import './App.css'; // Keep or remove based on your preference for App-specific CSS
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import HomePage from './pages/HomePage';
+import DashboardPage from './pages/DashboardPage';
+import { useAuth } from './context/AuthContext';
 
-function App() {
-  const [message, setMessage] = useState('Welcome to Flat Management!');
+import './index.css';
 
-  // Example of making an API call after component mounts
-  useEffect(() => {
-    const fetchWelcome = async () => {
-      try {
-        // This is just to test if the backend root endpoint is reachable
-        const response = await fetch('http://localhost:5000');
-        const text = await response.text();
-        setMessage(text);
-      } catch (error) {
-        console.error("Failed to fetch from backend:", error);
-        setMessage("Failed to connect to backend. Is it running?");
-      }
-    };
-    fetchWelcome();
-  }, []); // Empty dependency array means this runs once on mount
-
-  const handleRegister = async () => {
-    try {
-      // Example: Register a new test user
-      const res = await register({
-        firstName: "Test",
-        lastName: "User",
-        email: `test${Date.now()}@example.com`, // Unique email
-        password: "testpassword123",
-        userType: "tenant"
-      });
-      console.log("Register Response:", res.data);
-      setMessage("Registered! Check console for token.");
-    } catch (error: any) {
-      console.error("Registration Error:", error.response ? error.response.data : error.message);
-      setMessage("Registration failed. See console.");
-    }
-  };
-
-  const handleLogin = async () => {
-    try {
-      // Example: Login the previously registered user (adjust email if changed)
-      const res = await login({
-        email: "john.doe@example.com", // Or the unique email you used for test registration
-        password: "securepassword123"
-      });
-      console.log("Login Response:", res.data);
-      setMessage("Logged in! Check console for token.");
-    } catch (error: any) {
-      console.error("Login Error:", error.response ? error.response.data : error.message);
-      setMessage("Login failed. See console.");
-    }
-  };
-
-  const handleGetAllFlats = async () => {
-    try {
-      const res = await getAllFlats();
-      console.log("All Flats:", res.data);
-      setMessage(`Fetched ${res.data.length} flats. Check console.`);
-    } catch (error: any) {
-      console.error("Get Flats Error:", error.response ? error.response.data : error.message);
-      setMessage("Failed to get flats. See console.");
-    }
-  };
+// Component for the Navigation Bar - Defined before App
+const NavBar: React.FC = () => {
+  const { isAuthenticated, user, logout } = useAuth();
+  console.log('NavBar: Rendering. isAuthenticated:', isAuthenticated);
 
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center text-white p-4">
-      <h1 className="text-5xl font-bold mb-8 text-blue-400">Flat Management Frontend</h1>
-      <p className="text-xl mb-4">{message}</p>
-      <div className="space-x-4">
-        <button onClick={handleRegister} className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg">
-          Test Register
-        </button>
-        <button onClick={handleLogin} className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg">
-          Test Login
-        </button>
-        <button onClick={handleGetAllFlats} className="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-4 rounded-lg">
-          Test Get All Flats
-        </button>
+    <nav className="bg-surface-card shadow-md p-4 border-b border-border-subtle">
+      <div className="container mx-auto flex justify-between items-center">
+        <Link to="/" className="text-xl font-bold text-primary-accent">
+          Flat Manager
+        </Link>
+        <div className="flex items-center space-x-4">
+          {isAuthenticated ? (
+            <>
+              <span className="text-text-secondary text-sm">
+                Welcome, {user?.firstName} ({user?.userType})
+              </span>
+              <Link to="/dashboard" className="px-4 py-2 rounded-xl text-primary-accent hover:bg-gray-100 transition duration-200">
+                Dashboard
+              </Link>
+              <button
+                onClick={logout}
+                className="px-4 py-2 rounded-3xl bg-primary-accent text-white hover:bg-accent-hover transition duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="px-4 py-2 rounded-xl text-primary-accent hover:bg-gray-100 transition duration-200">
+                Login
+              </Link>
+              <Link to="/register" className="px-4 py-2 rounded-3xl bg-primary-accent text-white hover:bg-accent-hover transition duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105">
+                Register
+              </Link>
+            </>
+          )}
+        </div>
       </div>
-      <p className="mt-8 text-gray-500 text-sm">
-        Check your browser's console for API responses.
-      </p>
+    </nav>
+  );
+};
+
+// Component to protect routes (redirects if not authenticated) - Defined before App
+const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
+  console.log('PrivateRoute: Checking isAuthenticated:', isAuthenticated);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      console.log('PrivateRoute: Not authenticated, redirecting to /login');
+      navigate('/login', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
+
+  // Only render children if authenticated, otherwise return null (or a loading spinner)
+  return isAuthenticated ? <>{children}</> : null;
+};
+
+
+// Main App component
+function App() {
+    console.log('App: Rendering App component');
+  return (
+    // <Router> is now in main.tsx
+    <div className="min-h-screen flex flex-col font-normal text-text-primary">
+      <NavBar /> {/* NavBar is used here */}
+
+      <main className="flex-grow container mx-auto p-4 flex items-center justify-center bg-surface-scaffold">
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          {/* Use PrivateRoute here */}
+          <Route path="/dashboard" element={
+            <PrivateRoute>
+              <DashboardPage />
+            </PrivateRoute>
+          } />
+        </Routes>
+      </main>
+
+      <footer className="bg-surface-card p-4 text-center text-text-secondary border-t border-border-subtle mt-auto">
+        <p>&copy; {new Date().getFullYear()} Flat Manager. All rights reserved.</p>
+      </footer>
     </div>
   );
 }

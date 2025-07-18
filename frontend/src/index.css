@@ -1,69 +1,44 @@
+/* frontend/src/index.css */
+
+/* Google Fonts Import: Roboto */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+
+/* Tailwind CSS directives */
 @import "tailwindcss";
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+/* Define custom colors and font using @theme directive for v4 compatibility */
+@theme {
+  /* M3 Expressive Inspired Palette (Aqua/Teal) */
+  --color-surface-scaffold: #E0F7FA;   /* Very light background tint */
+  --color-surface-card: #FFFFFF;       /* Pure white for elevated surfaces */
+  --color-primary-accent: #00BCD4;     /* Vibrant Aqua/Teal primary */
+  --color-accent-hover: #0097A7;       /* Darker Aqua/Teal for hover */
+  --color-text-primary: #263238;       /* Dark text (almost black) */
+  --color-text-secondary: #607D8B;     /* Medium gray text */
+  --color-border-subtle: #EFEFEF;      /* Subtle light gray for borders */
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+  /* Standard Tailwind colors can be used directly for error/success like 'text-red-600' */
+  /* --color-error: #D32F2F; */
+  /* --color-success: #388E3C; */
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+  --font-family-sans: "Roboto", sans-serif;
 }
 
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
+/* Apply base styles within @layer base for proper Tailwind cascade */
+@layer base {
+  body {
+    margin: 0;
+    background-color: var(--color-surface-scaffold); /* Apply the very light background */
+    color: var(--color-text-primary); /* Apply the primary dark text color */
+    font-family: var(--font-family-sans);
+    font-weight: 400; /* Regular font weight for good readability */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
+
+  /* Ensure focus outlines are visible and use the primary accent color */
+  :focus {
+    outline: 2px solid var(--color-primary-accent);
+    outline-offset: 2px;
   }
 }

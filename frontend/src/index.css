@@ -16,6 +16,7 @@
   --color-text-primary: #263238;       /* Dark text (almost black) */
   --color-text-secondary: #607D8B;     /* Medium gray text */
   --color-border-subtle: #EFEFEF;      /* Subtle light gray for borders */
+  --color-input-bg: var(--color-surface-scaffold);
 
   /* Standard Tailwind colors can be used directly for error/success like 'text-red-600' */
   /* --color-error: #D32F2F; */

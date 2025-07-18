@@ -33,7 +33,7 @@ const RegisterPage: React.FC = () => {
           <input
             type="text"
             id="firstName"
-            className="shadow-sm appearance-none border border-border-subtle rounded-xl w-full py-2 px-3 bg-surface-scaffold text-text-primary leading-tight focus:outline-none focus:ring-2 focus:ring-primary-accent transition duration-200 font-normal"
+            className="shadow-sm appearance-none rounded-full w-full py-2 px-3 bg-input-bg text-text-primary leading-tight focus:outline-none focus:ring-2 focus:ring-primary-accent transition duration-200 font-normal"
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
             required
@@ -46,7 +46,7 @@ const RegisterPage: React.FC = () => {
           <input
             type="text"
             id="lastName"
-            className="shadow-sm appearance-none border border-border-subtle rounded-xl w-full py-2 px-3 bg-surface-scaffold text-text-primary leading-tight focus:outline-none focus:ring-2 focus:ring-primary-accent transition duration-200 font-normal"
+            className="shadow-sm appearance-none rounded-full w-full py-2 px-3 bg-input-bg text-text-primary leading-tight focus:outline-none focus:ring-2 focus:ring-primary-accent transition duration-200 font-normal"
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
             required
@@ -59,7 +59,7 @@ const RegisterPage: React.FC = () => {
           <input
             type="email"
             id="email"
-            className="shadow-sm appearance-none border border-border-subtle rounded-xl w-full py-2 px-3 bg-surface-scaffold text-text-primary leading-tight focus:outline-none focus:ring-2 focus:ring-primary-accent transition duration-200 font-normal"
+            className="shadow-sm appearance-none rounded-full w-full py-2 px-3 bg-input-bg text-text-primary leading-tight focus:outline-none focus:ring-2 focus:ring-primary-accent transition duration-200 font-normal"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -72,7 +72,7 @@ const RegisterPage: React.FC = () => {
           <input
             type="password"
             id="password"
-            className="shadow-sm appearance-none border border-border-subtle rounded-xl w-full py-2 px-3 bg-surface-scaffold text-text-primary leading-tight focus:outline-none focus:ring-2 focus:ring-primary-accent transition duration-200 font-normal"
+            className="shadow-sm appearance-none rounded-full w-full py-2 px-3 bg-input-bg text-text-primary leading-tight focus:outline-none focus:ring-2 focus:ring-primary-accent transition duration-200 font-normal"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -84,7 +84,7 @@ const RegisterPage: React.FC = () => {
           </label>
           <select
             id="userType"
-            className="shadow-sm border border-border-subtle rounded-xl w-full py-2 px-3 bg-surface-scaffold text-text-primary leading-tight focus:outline-none focus:ring-2 focus:ring-primary-accent transition duration-200 font-normal"
+            className="shadow-sm border-border-subtle rounded-xl w-full py-2 px-3 bg-input-bg text-text-primary leading-tight focus:outline-none focus:shadow-outline focus:ring-2 focus:ring-primary-accent transition duration-200 font-normal"
             value={userType}
             onChange={(e) => setUserType(e.target.value)}
           >

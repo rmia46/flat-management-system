@@ -43,8 +43,8 @@ model Flat {
   houseName         String?     @map("HouseName")
   houseNumber       String?     @map("HouseNumber")
   address           String      @map("Address")
-  latitude          Float       @map("Latitude") // For Google Maps
-  longitude         Float       @map("Longitude") // For Google Maps
+  latitude          Float?       @map("Latitude") // For Google Maps
+  longitude         Float?       @map("Longitude") // For Google Maps
   rating            Decimal?    @map("Rating") @db.Decimal(3,2) // DECIMAL(3,2) in MySQL
   bedrooms          Int?
   bathrooms         Int?
@@ -52,7 +52,7 @@ model Flat {
   monthlyRentalCost Decimal     @map("MonthlyRentalCost") @db.Decimal(10,2)
   utilityCost       Decimal?    @map("UtilityCost") @db.Decimal(10,2)
   minimumStay       Int?        @map("MinimumStay") // Minimum months or days
-  description       String?
+  description       String?     @db.Text 
   status            String      @default("available") @map("Status") // 'available', 'booked', 'pending', 'unavailable'
   // Consider adding a 'city' or 'district' for better search/filtering later
 

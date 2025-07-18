@@ -26,5 +26,6 @@ export const login = (credentials: any) => api.post('/auth/login', credentials);
 // --- Flat API Calls ---
 export const getAllFlats = () => api.get('/flats');
 export const createFlat = (flatData: any) => api.post('/flats', flatData);
+export const getOwnerFlats = () => api.get('/flats/owner');
 
-// You can add more specific types for userData, credentials, flatData later
+// add more specific types for userData, credentials, flatData later

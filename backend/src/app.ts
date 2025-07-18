@@ -1,8 +1,8 @@
 // backend/src/app.ts
 import express from 'express';
 import cors from 'cors';
-// import flatRoutes from './routes/flatRoutes'; // Will create this later
-import authRoutes from './routes/authRoutes'; // Will create this later
+import flatRoutes from './routes/flatRoutes';
+import authRoutes from './routes/authRoutes';
 
 const app = express();
 
@@ -17,6 +17,6 @@ app.get('/', (req, res) => {
 
 // Register API routes
 app.use('/api/auth', authRoutes);
-// app.use('/api/flats', flatRoutes);
+app.use('/api/flats', flatRoutes);
 
 export default app;

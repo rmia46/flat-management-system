@@ -1,9 +1,14 @@
-// backend/src/routes/flat-routes.ts
+// backend/src/routes/flatRoutes.ts
 import { Router } from 'express';
+import { createFlat, getAllFlats } from '../controllers/flatController';
+import { protect, authorize } from '../middlewares/authMiddleware'; // Import auth middleware
 
 const router = Router();
 
-// Define flat-related routes here later
-// Example: router.get('/', (req, res) => res.send('Get all flats'));
+// Public route to get all available flats
+router.get('/', getAllFlats);
+
+// Protected route to create a flat (only by owners)
+router.post('/', protect, authorize('owner'), createFlat);
 
 export default router;

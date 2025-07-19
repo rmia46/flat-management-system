@@ -53,12 +53,11 @@ const FlatCard: React.FC<FlatCardProps> = ({ flat, showActions = false }) => {
     : 'N/A';
 
   return (
-    <div className="bg-whiteSurface rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 border border-border-subtle overflow-hidden transform hover:scale-[1.02]">
-      {/* Flat Image */}
-      <div className="w-full h-48 bg-gray-200 overflow-hidden flex items-center justify-center">
+    <div className="bg-card rounded-lg shadow-md hover:shadow-lg transition-all duration-300 border border-border overflow-hidden transform hover:scale-[1.02]"> 
+       
+      <div className="w-full h-48 bg-muted overflow-hidden flex items-center justify-center"> 
         {thumbnailUrl === 'https://via.placeholder.com/300x200?text=No+Image' ? (
-          // Show a simple color or icon if no image
-          <div className="w-full h-full bg-gray-300 flex items-center justify-center text-gray-500 text-lg">
+          <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground text-lg"> 
             No Image Available
           </div>
         ) : (
@@ -66,38 +65,38 @@ const FlatCard: React.FC<FlatCardProps> = ({ flat, showActions = false }) => {
         )}
       </div>
 
-      {/* Flat Details */}
-      <div className="p-5">
-        <h3 className="text-xl font-semibold text-text-primary mb-2">
+      
+      <div className="p-5 text-card-foreground"> 
+        <h3 className="text-xl font-semibold text-foreground mb-2"> 
           Flat {flat.flatNumber || flat.id} {flat.houseName ? `in ${flat.houseName}` : ''}
         </h3>
-        <p className="text-text-secondary text-sm mb-3">{flat.address}</p>
+        <p className="text-muted-foreground text-sm mb-3">{flat.address}</p> 
 
-        <div className="grid grid-cols-2 gap-2 text-text-secondary text-sm mb-4">
-          <p><strong>Rent:</strong> {displayRent}</p> {/* Use displayRent here */}
-          <p><strong>Beds:</strong> {flat.bedrooms ?? 'N/A'}</p> {/* Use nullish coalescing for N/A */}
+        <div className="grid grid-cols-2 gap-2 text-muted-foreground text-sm mb-4"> 
+          <p><strong>Rent:</strong> {displayRent}</p>
+          <p><strong>Beds:</strong> {flat.bedrooms ?? 'N/A'}</p>
           <p><strong>Baths:</strong> {flat.bathrooms ?? 'N/A'}</p>
-          <p><strong>Status:</strong> <span className={`font-medium ${flat.status === 'available' ? 'text-green-600' : 'text-red-600'}`}>{flat.status}</span></p>
+          <p><strong>Status:</strong> <span className={`font-medium ${flat.status === 'available' ? 'text-green-600' : 'text-destructive'}`}>{flat.status}</span></p> 
           {flat.rating !== null && flat.rating !== undefined && <p><strong>Rating:</strong> {flat.rating.toFixed(1)}/5</p>}
           {flat.balcony && <p><strong>Balcony:</strong> Yes</p>}
         </div>
 
         {flat.description && (
-          <p className="text-text-primary text-base line-clamp-3 mb-4">{flat.description}</p>
+          <p className="text-foreground text-base line-clamp-3 mb-4">{flat.description}</p> 
         )}
 
-        {/* Amenities (displaying first few) */}
+        
         {flat.amenities && flat.amenities.length > 0 && ( // Check if amenities array exists and has length
           <div className="mb-4">
-            <h4 className="text-sm font-semibold text-text-primary mb-2">Amenities:</h4>
+            <h4 className="text-sm font-semibold text-foreground mb-2">Amenities:</h4> 
             <div className="flex flex-wrap gap-2">
               {flat.amenities.slice(0, 3).map((a, index) => (
-                <span key={index} className="bg-primary-accent text-white py-1 px-3 rounded-full text-xs font-medium">
+                <span key={index} className="bg-secondary text-secondary-foreground py-1 px-3 rounded-full text-xs font-medium"> 
                   {a.amenity.name}
                 </span>
               ))}
               {flat.amenities.length > 3 && (
-                <span className="bg-gray-200 text-gray-700 py-1 px-3 rounded-full text-xs font-medium">
+                <span className="bg-muted text-muted-foreground py-1 px-3 rounded-full text-xs font-medium"> {/* Muted background/text for chips */}
                   +{flat.amenities.length - 3} more
                 </span>
               )}
@@ -107,10 +106,10 @@ const FlatCard: React.FC<FlatCardProps> = ({ flat, showActions = false }) => {
 
         {showActions && (
           <div className="mt-4 flex justify-end space-x-2">
-            <button className="bg-primary-accent hover:bg-accent-hover text-white py-2 px-4 rounded-xl font-medium transition duration-200 shadow-md">
+            <button className="bg-secondary text-secondary-foreground hover:bg-secondary/90 py-2 px-4 rounded-md font-medium transition-colors duration-200 shadow-sm"> 
               Edit
             </button>
-            <button className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-xl font-medium transition duration-200 shadow-md">
+            <button className="bg-destructive text-destructive-foreground hover:bg-destructive/90 py-2 px-4 rounded-md font-medium transition-colors duration-200 shadow-sm"> 
               Delete
             </button>
           </div>

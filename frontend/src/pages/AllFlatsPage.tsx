@@ -25,15 +25,15 @@ const AllFlatsPage: React.FC = () => {
   }, []);
 
   if (loading) {
-    return <p className="text-text-secondary text-xl">Loading available flats...</p>;
+    return <p className="text-muted-foreground text-xl">Loading available flats...</p>; /* Muted text */
   }
 
   if (error) {
-    return <p className="text-red-600 text-xl">{error}</p>;
+    return <p className="text-destructive text-xl">{error}</p>; /* Destructive color for error */
   }
 
   return (
-    <div className="bg-surface-card p-8 rounded-4xl shadow-lg border border-border-subtle w-full max-w-5xl">
+    <div className="bg-card p-8 rounded-lg shadow-md border border-border w-full max-w-5xl"> 
       <FlatList
         flats={flats}
         title="Available Flats"

@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getOwnerFlats } from '../services/api';
 import FlatList from '../components/flats/FlatList';
-import { Link } from 'react-router-dom'; // <--- Make sure this is imported
+import { Link } from 'react-router-dom';
 
 const DashboardPage: React.FC = () => {
   const { user } = useAuth();
@@ -33,47 +33,45 @@ const DashboardPage: React.FC = () => {
 
 
   return (
-    <div className="text-center p-8 bg-surface-card rounded-4xl shadow-lg border border-border-subtle w-full max-w-5xl">
-      <h2 className="text-4xl font-bold mb-4 text-text-primary">User Dashboard</h2>
+    <div className="text-center p-8 bg-card rounded-lg shadow-md border border-border w-full max-w-5xl text-card-foreground"> 
+      <h2 className="text-4xl font-bold mb-4 text-foreground">User Dashboard</h2> 
       {user ? (
-        <p className="text-xl text-text-secondary">Welcome, {user.firstName} ({user.userType})!</p>
+        <p className="text-xl text-muted-foreground">Welcome, {user.firstName} ({user.userType})!</p> 
       ) : (
-        <p className="text-xl text-text-secondary">Welcome to your personalized dashboard!</p>
+        <p className="text-xl text-muted-foreground">Welcome to your personalized dashboard!</p>
       )}
 
       <div className="mt-8">
         {user?.userType === 'owner' && (
           <>
-            <h3 className="text-2xl font-semibold text-text-primary mb-4">Your Listed Flats</h3>
-            {/* Button to add new flat */}
-            <Link to="/flats/create" className="bg-primary-accent hover:bg-accent-hover text-white rounded-3xl font-bold py-2 px-6 shadow-md hover:shadow-lg transition duration-200 transform hover:scale-105 mb-6 inline-block">
+            <h3 className="text-2xl font-semibold text-foreground mb-4">Your Listed Flats</h3> 
+            <Link to="/flats/create" className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md font-bold py-2 px-6 shadow-sm transition-colors duration-200 transform hover:scale-[1.02]"> 
               + List New Flat
             </Link>
 
             {loadingFlats ? (
-              <p className="text-text-secondary">Loading your flats...</p>
+              <p className="text-muted-foreground">Loading your flats...</p>
             ) : flatsError ? (
-              <p className="text-red-600">{flatsError}</p>
+              <p className="text-destructive">{flatsError}</p> 
             ) : (
               <FlatList
                 flats={ownerFlats}
-                title="" // Title already handled by h3 above
+                title=""
                 emptyMessage="You haven't listed any flats yet."
-                showActions={true} // Show Edit/Delete buttons on owner's cards
+                showActions={true}
               />
             )}
           </>
         )}
 
         {user?.userType === 'tenant' && (
-          <p className="mt-4 text-text-secondary text-base">
-            As a tenant, you can browse all available flats.
-            <Link to="/flats" className="text-primary-accent hover:underline ml-2">Browse Flats</Link>
+          <p className="mt-4 text-muted-foreground text-base">
+            Welcome to your tenant dashboard. Find your next flat through the navigation bar!
           </p>
         )}
 
-        {!user && ( // If user is null (shouldn't happen on DashboardPage due to PrivateRoute)
-             <p className="mt-4 text-text-secondary text-base">
+        {!user && (
+             <p className="mt-4 text-muted-foreground text-base">
                Please log in to view your dashboard.
              </p>
         )}

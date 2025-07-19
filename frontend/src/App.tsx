@@ -9,54 +9,166 @@ import AllFlatsPage from './pages/AllFlatsPage';
 import CreateFlatPage from './pages/CreateFlatPage';
 import { useAuth } from './context/AuthContext';
 
-import './index.css'; // Global styles with shadcn variables
+import { Button } from '@/components/ui/button';
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+  navigationMenuTriggerStyle,
+} from "@/components/ui/navigation-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+
+// Utility component from shadcn/ui docs for list items in NavigationMenuContent
+const ListItem = React.forwardRef<
+  React.ElementRef<"a">,
+  React.ComponentPropsWithoutRef<"a">
+>(({ className, title, children, ...props }, ref) => {
+  return (
+    <li>
+      <NavigationMenuLink asChild>
+        <a
+          ref={ref}
+          className={("block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground", className)}
+          {...props}
+        >
+          <div className="text-sm font-medium leading-none">{title}</div>
+          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+            {children}
+          </p>
+        </a>
+      </NavigationMenuLink>
+    </li>
+  )
+})
+ListItem.displayName = "ListItem"
+
 
 // Component for the Navigation Bar
 const NavBar: React.FC = () => {
-  const { isAuthenticated, user, logout } = useAuth();
-  console.log('NavBar: Rendering. isAuthenticated:', isAuthenticated);
+  const { isAuthenticated, user, logout, isLoading } = useAuth(); // <--- ENSURE isLoading IS DESTRUCTURED HERE
 
   return (
-    <nav className="bg-card text-card-foreground shadow-sm p-4 border-b border-border"> 
+    <nav className="bg-card text-card-foreground shadow-sm p-4 border-b border-border">
       <div className="container mx-auto flex justify-between items-center">
-        <Link to="/" className="text-xl font-bold text-primary"> 
+        <Link to="/" className="text-xl font-bold text-primary">
           Flat Manager
         </Link>
+
+        {/* Main Navigation Menu */}
+        <NavigationMenu>
+          <NavigationMenuList>
+            <NavigationMenuItem>
+              <Link to="/" legacyBehavior passHref>
+                <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                  Home
+                </NavigationMenuLink>
+              </Link>
+            </NavigationMenuItem>
+
+            <NavigationMenuItem>
+              <Link to="/flats" legacyBehavior passHref>
+                <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                  Browse Flats
+                </NavigationMenuLink>
+              </Link>
+            </NavigationMenuItem>
+
+            <NavigationMenuItem>
+              <NavigationMenuTrigger>About</NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <ul className="grid gap-3 p-6 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
+                  <li className="row-span-3">
+                    <NavigationMenuLink asChild>
+                      <a
+                        className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
+                        href="/"
+                      >
+                        <div className="mb-2 mt-4 text-lg font-medium">
+                          Flat Manager App
+                        </div>
+                        <p className="text-sm leading-tight text-muted-foreground">
+                          A platform for seamless flat management.
+                        </p>
+                      </a>
+                    </NavigationMenuLink>
+                  </li>
+                  <ListItem href="/about" title="About Us">
+                    Learn more about our mission and team.
+                  </ListItem>
+                  <ListItem href="/contact" title="Contact Us">
+                    Get in touch with our support.
+                  </ListItem>
+                  <ListItem href="/services" title="Our Services">
+                    Explore the features we offer.
+                  </ListItem>
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+          </NavigationMenuList>
+        </NavigationMenu>
+
+        {/* Right-aligned buttons and user info */}
         <div className="flex items-center space-x-4">
           {isAuthenticated ? (
             <>
-              <span className="text-muted-foreground text-sm"> 
-                Welcome, {user?.firstName} ({user?.userType})
-              </span>
-              
-              <Link to="/dashboard" className="px-4 py-2 rounded-md text-foreground hover:bg-muted transition-colors duration-200"> 
-                Dashboard
-              </Link>
+              {/* User Info Popover Trigger */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" className="text-muted-foreground text-sm cursor-pointer" disabled={isLoading}> {/* ENSURE disabled={isLoading} IS HERE */}
+                    Welcome, {user?.firstName} ({user?.userType})!
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-4">
+                  <div className="grid gap-2 text-foreground">
+                    <div className="text-lg font-semibold">User Info</div>
+                    <div className="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-1 text-sm">
+                      <span className="text-muted-foreground">Name:</span>
+                      <span>{user?.firstName} {user?.lastName}</span>
+                      <span className="text-muted-foreground">Email:</span>
+                      <span>{user?.email}</span>
+                      <span className="text-muted-foreground">Type:</span>
+                      <span>{user?.userType}</span>
+                      {user?.phone && (
+                        <>
+                          <span className="text-muted-foreground">Phone:</span>
+                          <span>{user?.phone}</span>
+                        </>
+                      )}
+                      {user?.nid && (
+                        <>
+                          <span className="text-muted-foreground">NID:</span>
+                          <span>{user?.nid}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
 
-              {user?.userType === 'tenant' && (
-                <Link to="/flats" className="px-4 py-2 rounded-md text-foreground hover:bg-muted transition-colors duration-200">
-                  Browse Flats
-                </Link>
-              )}
+              {/* Dashboard button */}
+              <Button asChild variant="default">
+                <Link to="/dashboard">Dashboard</Link>
+              </Button>
 
-              <button
-                onClick={logout}
-                className="px-4 py-2 rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors duration-200 font-medium shadow-sm" // Use destructive button for logout
-              >
+              <Button onClick={logout} variant="destructive">
                 Logout
-              </button>
+              </Button>
             </>
           ) : (
             <>
-              <Link to="/flats" className="px-4 py-2 rounded-md text-foreground hover:bg-muted transition-colors duration-200">
-                Browse All Flats
-              </Link>
-              <Link to="/login" className="px-4 py-2 rounded-md text-foreground hover:bg-muted transition-colors duration-250">
-                Login
-              </Link>
-              <Link to="/register" className="px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors duration-250 font-medium shadow-sm"> 
-                Register
-              </Link>
+              <Button asChild variant="ghost">
+                <Link to="/login">Login</Link>
+              </Button>
+              <Button asChild>
+                <Link to="/register">Register</Link>
+              </Button>
             </>
           )}
         </div>
@@ -65,19 +177,27 @@ const NavBar: React.FC = () => {
   );
 };
 
-// Component to protect routes (redirects if not authenticated)
+// PrivateRoute component (no changes from previous step)
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth(); // <--- ENSURE isLoading IS DESTRUCTURED HERE
   const navigate = useNavigate();
 
-  console.log('PrivateRoute: Checking isAuthenticated:', isAuthenticated);
+  console.log('PrivateRoute: Checking isAuthenticated:', isAuthenticated, 'Loading:', isLoading);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      console.log('PrivateRoute: Not authenticated, redirecting to /login');
+    if (!isAuthenticated && !isLoading) { // <--- ENSURE CONDITION USES !isLoading
+      console.log('PrivateRoute: Not authenticated and done loading, redirecting to /login');
       navigate('/login', { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, isLoading, navigate]);
+
+  if (isLoading) { // <--- ENSURE isLoading CHECK IS HERE
+    return (
+      <div className="flex justify-center items-center h-full text-foreground">
+        Loading authentication...
+      </div>
+    );
+  }
 
   return isAuthenticated ? <>{children}</> : null;
 };
@@ -86,10 +206,10 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 function App() {
     console.log('App: Rendering App component');
   return (
-    <div className="min-h-screen flex flex-col font-sans bg-background text-foreground"> 
+    <div className="min-h-screen flex flex-col font-sans bg-background text-foreground">
       <NavBar />
 
-      <main className="flex-grow container mx-auto p-4 flex items-center justify-center"> 
+      <main className="flex-grow container mx-auto p-4 flex items-center justify-center">
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
@@ -105,10 +225,14 @@ function App() {
               <DashboardPage />
             </PrivateRoute>
           } />
+          {/* Add placeholder routes for new menu items */}
+          <Route path="/about" element={<h2 className="text-3xl font-bold text-foreground">About Us Page</h2>} />
+          <Route path="/contact" element={<h2 className="text-3xl font-bold text-foreground">Contact Us Page</h2>} />
+          <Route path="/services" element={<h2 className="text-3xl font-bold text-foreground">Our Services Page</h2>} />
         </Routes>
       </main>
 
-      <footer className="bg-card text-card-foreground p-4 text-center border-t border-border"> 
+      <footer className="bg-card text-card-foreground p-4 text-center border-t border-border">
         <p>&copy; {new Date().getFullYear()} Flat Manager. All rights reserved.</p>
       </footer>
     </div>

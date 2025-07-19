@@ -4,6 +4,24 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { createFlat } from '../services/api';
 
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 const CreateFlatPage: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -27,9 +45,13 @@ const CreateFlatPage: React.FC = () => {
     }
   }, [isAuthenticated, user, navigate]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type, checked } = e.target as HTMLInputElement;
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value, type, checked } = e.target;
     setFormData({ ...formData, [name]: type === 'checkbox' ? checked : value });
+  };
+
+  const handleSelectChange = (value: string) => {
+    setFormData({ ...formData, status: value });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -68,139 +90,125 @@ const CreateFlatPage: React.FC = () => {
   };
 
   return (
-    <div className="bg-card p-8 rounded-lg shadow-lg w-full max-w-2xl border border-border text-card-foreground"> 
-      <h2 className="text-3xl font-bold text-center mb-6 text-foreground">List Your Flat</h2> 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {error && <p className="text-destructive text-center font-normal">{error}</p>} 
-        {successMessage && <p className="text-green-500 text-center font-normal">{successMessage}</p>}
+    <Card className="p-8 shadow-lg border border-border w-full max-w-2xl text-card-foreground"> 
+      <CardHeader className="text-center pb-6">
+        <CardTitle className="text-3xl font-bold text-foreground mb-2">List Your Flat</CardTitle> 
+        {error && <CardDescription className="text-destructive font-normal">{error}</CardDescription>} 
+        {successMessage && <CardDescription className="text-green-500 font-normal">{successMessage}</CardDescription>} 
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          
+          <div>
+            <label htmlFor="address" className="block text-muted-foreground text-sm font-medium mb-1">Full Address (Street, City, Area, Country):</label>
+            <Input
+              type="text"
+              id="address"
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+              required
+            />
+          </div>
 
-        
-        <div>
-          <label htmlFor="address" className="block text-muted-foreground text-sm font-medium mb-1">Full Address (Street, City, Area, Country):</label>
-          <input
-            type="text"
-            id="address"
-            name="address"
-            value={formData.address}
-            onChange={handleChange}
-            className="shadow-sm appearance-none rounded-md w-full py-2 px-3 bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-200 font-normal" // Shadcn input style, rounded-md
-            required
-          />
-        </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                  <label htmlFor="latitude" className="block text-muted-foreground text-sm font-medium mb-1">Latitude (Optional):</label>
+                  <Input
+                      type="text"
+                      id="latitude"
+                      name="latitude"
+                      value={formData.latitude}
+                      onChange={handleChange}
+                  />
+              </div>
+              <div>
+                  <label htmlFor="longitude" className="block text-muted-foreground text-sm font-medium mb-1">Longitude (Optional):</label>
+                  <Input
+                      type="text"
+                      id="longitude"
+                      name="longitude"
+                      value={formData.longitude}
+                      onChange={handleChange}
+                  />
+              </div>
+          </div>
 
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-                <label htmlFor="latitude" className="block text-muted-foreground text-sm font-medium mb-1">Latitude (Optional):</label>
-                <input
-                    type="text"
-                    id="latitude"
-                    name="latitude"
-                    value={formData.latitude}
-                    onChange={handleChange}
-                    className="shadow-sm appearance-none rounded-md w-full py-2 px-3 bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-200 font-normal"
-                />
+              <label htmlFor="flatNumber" className="block text-muted-foreground text-sm font-medium mb-1">Flat Number:</label>
+              <Input type="text" id="flatNumber" name="flatNumber" value={formData.flatNumber} onChange={handleChange} />
             </div>
             <div>
-                <label htmlFor="longitude" className="block text-muted-foreground text-sm font-medium mb-1">Longitude (Optional):</label>
-                <input
-                    type="text"
-                    id="longitude"
-                    name="longitude"
-                    value={formData.longitude}
-                    onChange={handleChange}
-                    className="shadow-sm appearance-none rounded-md w-full py-2 px-3 bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-200 font-normal"
-                />
+              <label htmlFor="floor" className="block text-muted-foreground text-sm font-medium mb-1">Floor:</label>
+              <Input type="number" id="floor" name="floor" value={formData.floor} onChange={handleChange} />
             </div>
-        </div>
+            <div>
+              <label htmlFor="houseName" className="block text-muted-foreground text-sm font-medium mb-1">House Name:</label>
+              <Input type="text" id="houseName" name="houseName" value={formData.houseName} onChange={handleChange} />
+            </div>
+            <div>
+              <label htmlFor="houseNumber" className="block text-muted-foreground text-sm font-medium mb-1">House Number:</label>
+              <Input type="text" id="houseNumber" name="houseNumber" value={formData.houseNumber} onChange={handleChange} />
+            </div>
+            <div>
+              <label htmlFor="monthlyRentalCost" className="block text-muted-foreground text-sm font-medium mb-1">Monthly Rent (BDT):</label>
+              <Input type="number" id="monthlyRentalCost" name="monthlyRentalCost" value={formData.monthlyRentalCost} onChange={handleChange} required />
+            </div>
+            <div>
+              <label htmlFor="utilityCost" className="block text-muted-foreground text-sm font-medium mb-1">Utility Cost (BDT, optional):</label>
+              <Input type="number" id="utilityCost" name="utilityCost" value={formData.utilityCost} onChange={handleChange} />
+            </div>
+            <div>
+              <label htmlFor="bedrooms" className="block text-muted-foreground text-sm font-medium mb-1">Bedrooms:</label>
+              <Input type="number" id="bedrooms" name="bedrooms" value={formData.bedrooms} onChange={handleChange} />
+            </div>
+            <div>
+              <label htmlFor="bathrooms" className="block text-muted-foreground text-sm font-medium mb-1">Bathrooms:</label>
+              <Input type="number" id="bathrooms" name="bathrooms" value={formData.bathrooms} onChange={handleChange} />
+            </div>
+          </div>
 
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="flatNumber" className="block text-muted-foreground text-sm font-medium mb-1">Flat Number:</label>
-            <input type="text" id="flatNumber" name="flatNumber" value={formData.flatNumber} onChange={handleChange}
-                className="shadow-sm appearance-none rounded-md w-full py-2 px-3 bg-input text-foreground leading-tight focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-200 font-normal" />
+          
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="balcony"
+              name="balcony"
+              checked={formData.balcony}
+              onChange={handleChange}
+              className="h-4 w-4 rounded-sm border border-input bg-background text-primary focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" // Adjusted checkbox styles
+            />
+            <label htmlFor="balcony" className="ml-2 text-muted-foreground text-sm font-medium">Balcony Available</label>
           </div>
-          <div>
-            <label htmlFor="floor" className="block text-muted-foreground text-sm font-medium mb-1">Floor:</label>
-            <input type="number" id="floor" name="floor" value={formData.floor} onChange={handleChange}
-                className="shadow-sm appearance-none rounded-md w-full py-2 px-3 bg-input text-foreground leading-tight focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-200 font-normal" />
-          </div>
-          <div>
-            <label htmlFor="houseName" className="block text-muted-foreground text-sm font-medium mb-1">House Name:</label>
-            <input type="text" id="houseName" name="houseName" value={formData.houseName} onChange={handleChange}
-                className="shadow-sm appearance-none rounded-md w-full py-2 px-3 bg-input text-foreground leading-tight focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-200 font-normal" />
-          </div>
-          <div>
-            <label htmlFor="houseNumber" className="block text-muted-foreground text-sm font-medium mb-1">House Number:</label>
-            <input type="text" id="houseNumber" name="houseNumber" value={formData.houseNumber} onChange={handleChange}
-                className="shadow-sm appearance-none rounded-md w-full py-2 px-3 bg-input text-foreground leading-tight focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-200 font-normal" />
-          </div>
-          <div>
-            <label htmlFor="monthlyRentalCost" className="block text-muted-foreground text-sm font-medium mb-1">Monthly Rent (BDT):</label>
-            <input type="number" id="monthlyRentalCost" name="monthlyRentalCost" value={formData.monthlyRentalCost} onChange={handleChange}
-                className="shadow-sm appearance-none rounded-md w-full py-2 px-3 bg-input text-foreground leading-tight focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-200 font-normal" required />
-          </div>
-          <div>
-            <label htmlFor="utilityCost" className="block text-muted-foreground text-sm font-medium mb-1">Utility Cost (BDT, optional):</label>
-            <input type="number" id="utilityCost" name="utilityCost" value={formData.utilityCost} onChange={handleChange}
-                className="shadow-sm appearance-none rounded-md w-full py-2 px-3 bg-input text-foreground leading-tight focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-200 font-normal" />
-          </div>
-          <div>
-            <label htmlFor="bedrooms" className="block text-muted-foreground text-sm font-medium mb-1">Bedrooms:</label>
-            <input type="number" id="bedrooms" name="bedrooms" value={formData.bedrooms} onChange={handleChange}
-                className="shadow-sm appearance-none rounded-md w-full py-2 px-3 bg-input text-foreground leading-tight focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-200 font-normal" />
-          </div>
-          <div>
-            <label htmlFor="bathrooms" className="block text-muted-foreground text-sm font-medium mb-1">Bathrooms:</label>
-            <input type="number" id="bathrooms" name="bathrooms" value={formData.bathrooms} onChange={handleChange}
-                className="shadow-sm appearance-none rounded-md w-full py-2 px-3 bg-input text-foreground leading-tight focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-200 font-normal" />
-          </div>
-        </div>
 
-        
-        <div className="flex items-center">
-          <input
-            type="checkbox"
-            id="balcony"
-            name="balcony"
-            checked={formData.balcony}
-            onChange={handleChange}
-            className="h-4 w-4 bg-input text-primary-foreground rounded-sm border border-input focus:ring-2 focus:ring-ring transition-colors duration-200" // Adjusted checkbox styles
-          />
-          <label htmlFor="balcony" className="ml-2 text-muted-foreground text-sm font-medium">Balcony Available</label>
-        </div>
+          
+          <div>
+            <label htmlFor="minimumStay" className="block text-muted-foreground text-sm font-medium mb-1">Minimum Stay (months, optional):</label>
+            <Input type="number" id="minimumStay" name="minimumStay" value={formData.minimumStay} onChange={handleChange} />
+          </div>
+          <div>
+            <label htmlFor="description" className="block text-muted-foreground text-sm font-medium mb-1">Description:</label>
+            <Textarea
+              id="description"
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              rows={4}
+            ></Textarea>
+          </div>
 
-        
-        <div>
-          <label htmlFor="minimumStay" className="block text-muted-foreground text-sm font-medium mb-1">Minimum Stay (months, optional):</label>
-          <input type="number" id="minimumStay" name="minimumStay" value={formData.minimumStay} onChange={handleChange}
-              className="shadow-sm appearance-none rounded-md w-full py-2 px-3 bg-input text-foreground leading-tight focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-200 font-normal" />
-        </div>
-        <div>
-          <label htmlFor="description" className="block text-muted-foreground text-sm font-medium mb-1">Description:</label>
-          <textarea
-            id="description"
-            name="description"
-            value={formData.description}
-            onChange={handleChange}
-            rows={4}
-            className="shadow-sm rounded-md w-full py-2 px-3 bg-input text-foreground leading-tight focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-200 font-normal" // Rounded-md for textarea
-          ></textarea>
-        </div>
-
-        
-        <div className="flex justify-center mt-6">
-          <button
-            type="submit"
-            className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold py-3 px-8 rounded-md shadow-sm hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-10 transition-colors duration-200 transform hover:scale-[1.02]"
-            disabled={loading}
-          >
-            {loading ? 'Listing Flat...' : 'List Flat Now'}
-          </button>
-        </div>
-      </form>
-    </div>
+          
+          <div className="flex justify-center mt-6">
+            <Button type="submit" disabled={loading}>
+              {loading ? 'Listing Flat...' : 'List Flat Now'}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 };
 

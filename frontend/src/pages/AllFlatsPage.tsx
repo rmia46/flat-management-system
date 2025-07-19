@@ -3,6 +3,13 @@ import React, { useEffect, useState } from 'react';
 import { getAllFlats } from '../services/api';
 import FlatList from '../components/flats/FlatList';
 
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"; // IMPORT SHADCN CARD COMPONENTS
+
 const AllFlatsPage: React.FC = () => {
   const [flats, setFlats] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,21 +32,26 @@ const AllFlatsPage: React.FC = () => {
   }, []);
 
   if (loading) {
-    return <p className="text-muted-foreground text-xl">Loading available flats...</p>; /* Muted text */
+    return <p className="text-muted-foreground text-xl">Loading available flats...</p>;
   }
 
   if (error) {
-    return <p className="text-destructive text-xl">{error}</p>; /* Destructive color for error */
+    return <p className="text-destructive text-xl">{error}</p>;
   }
 
   return (
-    <div className="bg-card p-8 rounded-lg shadow-md border border-border w-full max-w-5xl"> 
-      <FlatList
-        flats={flats}
-        title="Available Flats"
-        emptyMessage="No flats are currently available. Check back soon!"
-      />
-    </div>
+    <Card className="p-8 shadow-lg border border-border w-full max-w-5xl text-card-foreground"> 
+      <CardHeader>
+        <CardTitle className="text-3xl font-bold mb-4 text-center text-foreground">Available Flats</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <FlatList
+          flats={flats}
+          title="" // Title is now in CardTitle
+          emptyMessage="No flats are currently available. Check back soon!"
+        />
+      </CardContent>
+    </Card>
   );
 };
 

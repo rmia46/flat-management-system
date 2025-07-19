@@ -3,6 +3,23 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"; // IMPORT SHADCN SELECT COMPONENTS
+
 const RegisterPage: React.FC = () => {
   const { registerUser } = useAuth();
   const [firstName, setFirstName] = useState('');
@@ -22,89 +39,90 @@ const RegisterPage: React.FC = () => {
   };
 
   return (
-    <div className="bg-card p-8 rounded-lg shadow-lg w-full max-w-md border border-border text-card-foreground"> 
-      <h2 className="text-3xl font-bold text-center mb-6 text-foreground">Register</h2> 
-      <form onSubmit={handleSubmit}>
-        {error && <p className="text-destructive text-center mb-4 font-normal">{error}</p>} 
-        <div className="mb-4">
-          <label htmlFor="firstName" className="block text-muted-foreground text-sm font-medium mb-2">
-            First Name:
-          </label>
-          <input
-            type="text"
-            id="firstName"
-            className="shadow-sm appearance-none rounded-md w-full py-2 px-3 bg-input text-foreground leading-tight focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-200 font-normal"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            required
-          />
-        </div>
-        <div className="mb-4">
-          <label htmlFor="lastName" className="block text-muted-foreground text-sm font-medium mb-2">
-            Last Name:
-          </label>
-          <input
-            type="text"
-            id="lastName"
-            className="shadow-sm appearance-none rounded-md w-full py-2 px-3 bg-input text-foreground leading-tight focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-200 font-normal"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            required
-          />
-        </div>
-        <div className="mb-4">
-          <label htmlFor="email" className="block text-muted-foreground text-sm font-medium mb-2">
-            Email:
-          </label>
-          <input
-            type="email"
-            id="email"
-            className="shadow-sm appearance-none rounded-md w-full py-2 px-3 bg-input text-foreground leading-tight focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-200 font-normal"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-        <div className="mb-4">
-          <label htmlFor="password" className="block text-muted-foreground text-sm font-medium mb-2">
-            Password:
-          </label>
-          <input
-            type="password"
-            id="password"
-            className="shadow-sm appearance-none rounded-md w-full py-2 px-3 bg-input text-foreground leading-tight focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-200 font-normal"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        <div className="mb-6">
-          <label htmlFor="userType" className="block text-muted-foreground text-sm font-medium mb-2">
-            Register as:
-          </label>
-          <select
-            id="userType"
-            className="shadow-sm border border-input rounded-md w-full py-2 px-3 bg-input text-foreground leading-tight focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-200 font-normal"
-            value={userType}
-            onChange={(e) => setUserType(e.target.value)}
-          >
-            <option value="tenant">Tenant</option>
-            <option value="owner">Owner</option>
-          </select>
-        </div>
-        <div className="flex items-center justify-between">
-          <button
-            type="submit"
-            className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold py-2 px-4 rounded-md shadow-sm hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-10 transition-colors duration-200 transform hover:scale-[1.02]"
-          >
-            Register
-          </button>
-          <Link to="/login" className="inline-block align-baseline font-medium text-sm text-foreground hover:text-primary transition-colors duration-200">
-            Already have an account? Login!
-          </Link>
-        </div>
-      </form>
-    </div>
+    <Card className="p-8 shadow-lg border border-border w-full max-w-md text-card-foreground">
+      <CardHeader className="text-center pb-6">
+        <CardTitle className="text-3xl font-bold text-foreground mb-2">Register</CardTitle>
+        {error && <CardDescription className="text-destructive font-normal">{error}</CardDescription>}
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="mb-4">
+            <label htmlFor="firstName" className="block text-muted-foreground text-sm font-medium mb-2">
+              First Name:
+            </label>
+            <Input
+              type="text"
+              id="firstName"
+              name="firstName"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              required
+            />
+          </div>
+          <div className="mb-4">
+            <label htmlFor="lastName" className="block text-muted-foreground text-sm font-medium mb-2">
+              Last Name:
+            </label>
+            <Input
+              type="text"
+              id="lastName"
+              name="lastName"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              required
+            />
+          </div>
+          <div className="mb-4">
+            <label htmlFor="email" className="block text-muted-foreground text-sm font-medium mb-2">
+              Email:
+            </label>
+            <Input
+              type="email"
+              id="email"
+              name="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          <div className="mb-4">
+            <label htmlFor="password" className="block text-muted-foreground text-sm font-medium mb-2">
+              Password:
+            </label>
+            <Input
+              type="password"
+              id="password"
+              name="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+          <div className="mb-6">
+            <label htmlFor="userType" className="block text-muted-foreground text-sm font-medium mb-2">
+              Register as:
+            </label>
+            <Select value={userType} onValueChange={setUserType}> 
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select user type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="tenant">Tenant</SelectItem>
+                <SelectItem value="owner">Owner</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center justify-between">
+            <Button type="submit" className="transition-colors duration-200 transform hover:scale-[1.02]">
+              Register
+            </Button>
+            <Link to="/login" className="inline-block align-baseline text-sm font-medium text-foreground hover:text-primary transition-colors duration-200">
+              Already have an account? Login!
+            </Link>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 };
 

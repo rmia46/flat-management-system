@@ -1,5 +1,14 @@
 // frontend/src/components/flats/FlatCard.tsx
 import React from 'react';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 // Define a basic type for a Flat (match your Prisma schema output for frontend usage)
 interface Image {
@@ -38,26 +47,23 @@ interface FlatCardProps {
 }
 
 const FlatCard: React.FC<FlatCardProps> = ({ flat, showActions = false }) => {
-  // --- IMPORTANT: Basic check if flat prop is valid ---
   if (!flat) {
     console.warn("FlatCard received an undefined or null flat prop.");
-    return null; // Don't render anything if flat is invalid
+    return null;
   }
 
-  // Handle image display: Try to find thumbnail, otherwise a generic placeholder
   const thumbnailUrl = flat.images?.find(img => img.isThumbnail)?.url || 'https://via.placeholder.com/300x200?text=No+Image';
 
-  // Safely access monthlyRentalCost and ensure it's a number for toLocaleString
   const displayRent = flat.monthlyRentalCost !== null && flat.monthlyRentalCost !== undefined
     ? `BDT ${flat.monthlyRentalCost.toLocaleString()}`
     : 'N/A';
 
   return (
-    <div className="bg-card rounded-lg shadow-md hover:shadow-lg transition-all duration-300 border border-border overflow-hidden transform hover:scale-[1.02]"> 
-       
+    <Card className="rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02] flex flex-col overflow-hidden"> 
+      
       <div className="w-full h-48 bg-muted overflow-hidden flex items-center justify-center"> 
         {thumbnailUrl === 'https://via.placeholder.com/300x200?text=No+Image' ? (
-          <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground text-lg"> 
+          <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground text-lg">
             No Image Available
           </div>
         ) : (
@@ -65,57 +71,54 @@ const FlatCard: React.FC<FlatCardProps> = ({ flat, showActions = false }) => {
         )}
       </div>
 
-      
-      <div className="p-5 text-card-foreground"> 
-        <h3 className="text-xl font-semibold text-foreground mb-2"> 
+      <CardHeader className="p-5 pb-0"> 
+        <CardTitle className="text-xl font-semibold text-foreground mb-1">
           Flat {flat.flatNumber || flat.id} {flat.houseName ? `in ${flat.houseName}` : ''}
-        </h3>
-        <p className="text-muted-foreground text-sm mb-3">{flat.address}</p> 
+        </CardTitle>
+        <CardDescription className="text-muted-foreground text-sm">{flat.address}</CardDescription>
+      </CardHeader>
 
-        <div className="grid grid-cols-2 gap-2 text-muted-foreground text-sm mb-4"> 
+      <CardContent className="p-5 pt-3 flex-grow"> 
+        <div className="grid grid-cols-2 gap-2 text-muted-foreground text-sm mb-4">
           <p><strong>Rent:</strong> {displayRent}</p>
           <p><strong>Beds:</strong> {flat.bedrooms ?? 'N/A'}</p>
           <p><strong>Baths:</strong> {flat.bathrooms ?? 'N/A'}</p>
-          <p><strong>Status:</strong> <span className={`font-medium ${flat.status === 'available' ? 'text-green-600' : 'text-destructive'}`}>{flat.status}</span></p> 
+          <p><strong>Status:</strong> <span className={`font-medium ${flat.status === 'available' ? 'text-green-600' : 'text-destructive'}`}> {flat.status} </span></p>
           {flat.rating !== null && flat.rating !== undefined && <p><strong>Rating:</strong> {flat.rating.toFixed(1)}/5</p>}
           {flat.balcony && <p><strong>Balcony:</strong> Yes</p>}
         </div>
 
         {flat.description && (
-          <p className="text-foreground text-base line-clamp-3 mb-4">{flat.description}</p> 
+          <p className="text-foreground text-base line-clamp-3 mb-4">{flat.description}</p>
         )}
 
-        
+        {/* Amenities */}
         {flat.amenities && flat.amenities.length > 0 && ( // Check if amenities array exists and has length
-          <div className="mb-4">
-            <h4 className="text-sm font-semibold text-foreground mb-2">Amenities:</h4> 
+          <div className="mt-auto"> 
+            <h4 className="text-sm font-semibold text-foreground mb-2">Amenities:</h4>
             <div className="flex flex-wrap gap-2">
               {flat.amenities.slice(0, 3).map((a, index) => (
-                <span key={index} className="bg-secondary text-secondary-foreground py-1 px-3 rounded-full text-xs font-medium"> 
+                <span key={index} className="bg-secondary text-secondary-foreground py-1 px-3 rounded-full text-xs font-medium">
                   {a.amenity.name}
                 </span>
               ))}
               {flat.amenities.length > 3 && (
-                <span className="bg-muted text-muted-foreground py-1 px-3 rounded-full text-xs font-medium"> {/* Muted background/text for chips */}
+                <span className="bg-muted text-muted-foreground py-1 px-3 rounded-full text-xs font-medium">
                   +{flat.amenities.length - 3} more
                 </span>
               )}
             </div>
           </div>
         )}
+      </CardContent>
 
-        {showActions && (
-          <div className="mt-4 flex justify-end space-x-2">
-            <button className="bg-secondary text-secondary-foreground hover:bg-secondary/90 py-2 px-4 rounded-md font-medium transition-colors duration-200 shadow-sm"> 
-              Edit
-            </button>
-            <button className="bg-destructive text-destructive-foreground hover:bg-destructive/90 py-2 px-4 rounded-md font-medium transition-colors duration-200 shadow-sm"> 
-              Delete
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
+      {showActions && (
+        <CardFooter className="p-5 pt-0 flex justify-end space-x-2"> 
+          <Button variant="secondary">Edit</Button> 
+          <Button variant="destructive">Delete</Button> 
+        </CardFooter>
+      )}
+    </Card>
   );
 };
 

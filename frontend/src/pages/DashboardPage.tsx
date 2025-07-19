@@ -5,6 +5,15 @@ import { getOwnerFlats } from '../services/api';
 import FlatList from '../components/flats/FlatList';
 import { Link } from 'react-router-dom';
 
+import { Button } from '@/components/ui/button'; // IMPORT SHADCN BUTTON
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"; // IMPORT SHADCN CARD COMPONENTS
+
 const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const [ownerFlats, setOwnerFlats] = useState<any[]>([]);
@@ -33,21 +42,23 @@ const DashboardPage: React.FC = () => {
 
 
   return (
-    <div className="text-center p-8 bg-card rounded-lg shadow-md border border-border w-full max-w-5xl text-card-foreground"> 
-      <h2 className="text-4xl font-bold mb-4 text-foreground">User Dashboard</h2> 
-      {user ? (
-        <p className="text-xl text-muted-foreground">Welcome, {user.firstName} ({user.userType})!</p> 
-      ) : (
-        <p className="text-xl text-muted-foreground">Welcome to your personalized dashboard!</p>
-      )}
+    <Card className="text-center p-8 shadow-lg border border-border w-full max-w-5xl text-card-foreground"> 
+      <CardHeader>
+        <CardTitle className="text-4xl font-bold mb-4 text-foreground">User Dashboard</CardTitle> 
+        {user ? (
+          <CardDescription className="text-xl text-muted-foreground">Welcome, {user.firstName} ({user.userType})!</CardDescription> 
+        ) : (
+          <CardDescription className="text-xl text-muted-foreground">Welcome to your personalized dashboard!</CardDescription>
+        )}
+      </CardHeader>
 
-      <div className="mt-8">
+      <CardContent>
         {user?.userType === 'owner' && (
           <>
             <h3 className="text-2xl font-semibold text-foreground mb-4">Your Listed Flats</h3> 
-            <Link to="/flats/create" className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md font-bold py-2 px-6 shadow-sm transition-colors duration-200 transform hover:scale-[1.02]"> 
-              + List New Flat
-            </Link>
+            <Button asChild className="mb-6 inline-block"> 
+              <Link to="/flats/create">+ List New Flat</Link>
+            </Button>
 
             {loadingFlats ? (
               <p className="text-muted-foreground">Loading your flats...</p>
@@ -75,8 +86,8 @@ const DashboardPage: React.FC = () => {
                Please log in to view your dashboard.
              </p>
         )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 

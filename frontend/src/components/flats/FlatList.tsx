@@ -1,6 +1,6 @@
 // frontend/src/components/flats/FlatList.tsx
 import React from 'react';
-import FlatCard from './FlatCard';
+import FlatCard from './FlatCard'; // Assuming FlatCard is in the same directory
 
 interface FlatListProps {
   flats: any[]; // Use 'any[]' for now, can define a more specific Flat[] type later

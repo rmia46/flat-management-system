@@ -10,7 +10,7 @@ import {
 
 const HomePage: React.FC = () => {
   return (
-    <Card className="text-center p-8 shadow-md border border-border text-card-foreground"> 
+    <Card className="w-full max-w-3xl text-center p-8 shadow-md border border-border text-card-foreground"> 
       <CardHeader>
         <CardTitle className="text-4xl font-bold mb-4 text-foreground">Welcome to Flat Management System</CardTitle> 
         <CardDescription className="text-xl text-muted-foreground">Find your perfect flat or manage your properties with ease.</CardDescription> 

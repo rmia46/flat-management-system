@@ -9,7 +9,7 @@ export const registerUser = async (req: Request, res: Response) => {
   const { firstName, lastName, email, password, phone, nid, userType } = req.body;
 
   // Basic validation (you'll want more robust validation later)
-  if (!firstName || !lastName || !email || !password || !userType) {
+  if (!firstName || !lastName || !email || !password || !phone || !nid || !userType) {
     return res.status(400).json({ message: 'Please enter all required fields.' });
   }
 
@@ -62,6 +62,8 @@ export const registerUser = async (req: Request, res: Response) => {
         firstName: newUser.firstName,
         lastName: newUser.lastName,
         email: newUser.email,
+        phone: newUser.phone, 
+        nid: newUser.nid,
         userType: newUser.userType,
         verified: newUser.verified,
       },

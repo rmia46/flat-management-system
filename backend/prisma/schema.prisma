@@ -12,7 +12,6 @@ datasource db {
   url      = env("DATABASE_URL") // Ensure DATABASE_URL is correctly set in your backend/.env
 }
 
-// --- Enhanced Models for Flat Management System ---
 
 model User {
   id           Int        @id @default(autoincrement()) @map("UserID")
@@ -20,8 +19,8 @@ model User {
   lastName     String     @map("LastName")
   email        String     @unique
   passwordHash String     @map("PasswordHash") // Store hashed passwords
-  phone        String?
-  nid          String?    @unique @map("NID")
+  phone        String     @unique @map("Phone")
+  nid          String     @unique @map("NID")
   verified     Boolean    @default(false) @map("Verified")
   userType     String     @map("UserType") // 'tenant', 'owner', 'admin'
 

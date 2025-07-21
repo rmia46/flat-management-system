@@ -26,13 +26,15 @@ const RegisterPage: React.FC = () => {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
+  const [nid, setNid] = useState('');
   const [userType, setUserType] = useState('tenant');
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const success = await registerUser({ firstName, lastName, email, password, userType });
+    const success = await registerUser({ firstName, lastName, email, password, phone, nid, userType });
     if (!success) {
       setError('Registration failed. Please try again with different details.');
     }
@@ -96,6 +98,31 @@ const RegisterPage: React.FC = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+            />
+          </div>
+          <div className="mb-4">
+            <label htmlFor="phone" className="block text-muted-foreground text-sm font-medium mb-2">
+              Phone:
+            </label>
+            <Input
+              type="tel" // Use type="tel" for phone numbers
+              id="phone"
+              name="phone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="e.g., 01XXXXXXXXX"
+            />
+          </div>
+          <div className="mb-4">
+            <label htmlFor="nid" className="block text-muted-foreground text-sm font-medium mb-2">
+              NID:
+            </label>
+            <Input
+              type="text"
+              id="nid"
+              name="nid"
+              value={nid}
+              onChange={(e) => setNid(e.target.value)}
             />
           </div>
           <div className="mb-6">

@@ -1,14 +1,12 @@
 // backend/src/middlewares/authMiddleware.ts
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import prisma from '../db'; // Import your Prisma Client instance
+import prisma from '../db';
 
-// Extend the Express Request interface to include user property
-// This allows TypeScript to recognize 'req.user'
 declare global {
   namespace Express {
     interface Request {
-      user?: { // Make it optional in case middleware is used on public routes
+      user?: {
         id: number;
         userType: string;
       };
@@ -19,34 +17,42 @@ declare global {
 export const protect = async (req: Request, res: Response, next: NextFunction) => {
   let token;
 
-  // Check for token in 'Authorization' header
+  console.log('--- Auth Middleware Debugging ---');
+  console.log('Request Headers:', req.headers);
+
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    console.log('Authorization header found.');
     try {
-      // Get token from header (e.g., 'Bearer TOKEN_STRING')
       token = req.headers.authorization.split(' ')[1];
+      console.log('Extracted Token:', token ? token.substring(0, 30) + '...' : 'No token extracted');
 
-      // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { id: number; userType: string };
+      console.log('Token Decoded Successfully. Decoded Payload:', decoded);
 
-      // Attach user information to the request object
       req.user = {
         id: decoded.id,
         userType: decoded.userType,
       };
-
-      next(); // Proceed to the next middleware/controller
+      console.log('req.user attached:', req.user);
+      console.log('--- End Auth Middleware Debugging (Success) ---');
+      next();
     } catch (error) {
-      console.error('Token verification error:', error);
-      res.status(401).json({ message: 'Not authorized, token failed.' });
+      console.error('Token Verification Failed:', error);
+      // If token is invalid or expired, log it but still call next() for public routes.
+      // The controller (getFlatById) will then see req.user as undefined.
+      req.user = undefined; // Explicitly set to undefined
+      console.log('Token invalid/expired. Proceeding as unauthenticated.');
+      next(); // <--- CRUCIAL CHANGE: Call next() even on token failure
     }
+  } else {
+    // No token provided. Proceed as unauthenticated.
+    req.user = undefined; // Explicitly set to undefined
+    console.log('No Authorization header or not starting with "Bearer". Proceeding as unauthenticated.');
+    next(); // <--- CRUCIAL CHANGE: Call next() if no token is found
   }
-
-  if (!token) {
-    res.status(401).json({ message: 'Not authorized, no token.' });
-  }
+  // Removed the 'res.status(401).json' response from here.
 };
 
-// Middleware to restrict access based on user type
 export const authorize = (...userTypes: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {

@@ -1,5 +1,5 @@
 // frontend/src/components/flats/FlatCard.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import FlatDetailsDialog from './FlatDetailsDialog';
 
 // Define a basic type for a Flat (match your Prisma schema output for frontend usage)
 interface Image {
@@ -47,6 +48,9 @@ interface FlatCardProps {
 }
 
 const FlatCard: React.FC<FlatCardProps> = ({ flat, showActions = false }) => {
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [selectedFlatId, setSelectedFlatId] = useState<number | null>(null); 
+
   if (!flat) {
     console.warn("FlatCard received an undefined or null flat prop.");
     return null;
@@ -58,9 +62,18 @@ const FlatCard: React.FC<FlatCardProps> = ({ flat, showActions = false }) => {
     ? `BDT ${flat.monthlyRentalCost.toLocaleString()}`
     : 'N/A';
 
+
+  const handleCardClick = () => { 
+    setSelectedFlatId(flat.id);
+    setIsDetailsDialogOpen(true);
+  };
+
   return (
-    <Card className="rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02] flex flex-col overflow-hidden"> 
-      
+    <>
+    <Card 
+      className="rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02] flex flex-col overflow-hidden"
+      onClick={handleCardClick}
+    > 
       <div className="w-full h-48 bg-muted overflow-hidden flex items-center justify-center"> 
         {thumbnailUrl === 'https://via.placeholder.com/300x200?text=No+Image' ? (
           <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground text-lg">
@@ -119,6 +132,12 @@ const FlatCard: React.FC<FlatCardProps> = ({ flat, showActions = false }) => {
         </CardFooter>
       )}
     </Card>
+    <FlatDetailsDialog
+        flatId={selectedFlatId}
+        isOpen={isDetailsDialogOpen}
+        onClose={() => setIsDetailsDialogOpen(false)}
+    />
+    </>
   );
 };
 

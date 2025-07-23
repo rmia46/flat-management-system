@@ -7,8 +7,8 @@ import HomePage from './pages/HomePage';
 import DashboardPage from './pages/DashboardPage';
 import AllFlatsPage from './pages/AllFlatsPage';
 import CreateFlatPage from './pages/CreateFlatPage';
-import { useAuth } from './context/AuthContext';
 
+import { useAuth } from './context/AuthContext';
 import { Button } from '@/components/ui/button';
 import {
   NavigationMenu,

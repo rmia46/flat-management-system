@@ -46,8 +46,21 @@ const CreateFlatPage: React.FC = () => {
   }, [isAuthenticated, user, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type, checked } = e.target;
-    setFormData({ ...formData, [name]: type === 'checkbox' ? checked : value });
+    const target = e.target as HTMLInputElement; // Cast to HTMLInputElement first
+    const { name, value } = target;
+
+    // Check if it's a checkbox specifically
+    if (target.type === 'checkbox') {
+        setFormData({
+            ...formData,
+            [name]: target.checked, // 'checked' is only on HTMLInputElement for checkboxes
+        });
+    } else {
+        setFormData({
+            ...formData,
+            [name]: value, // 'value' exists on both input and textarea
+        });
+    }
   };
 
   const handleSelectChange = (value: string) => {

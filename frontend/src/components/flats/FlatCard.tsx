@@ -11,6 +11,19 @@ import {
 } from "@/components/ui/card";
 import FlatDetailsDialog from './FlatDetailsDialog';
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"; 
+import { deleteFlat } from '@/services/api';
+
 // Define a basic type for a Flat (match your Prisma schema output for frontend usage)
 interface Image {
   id: number;
@@ -45,11 +58,14 @@ interface Flat {
 interface FlatCardProps {
   flat: Flat; // Flat is now expected to be of type Flat
   showActions?: boolean; // e.g., for owner's dashboard
+  onFlatDeleted?: (flatId: number) => void;
 }
 
-const FlatCard: React.FC<FlatCardProps> = ({ flat, showActions = false }) => {
+const FlatCard: React.FC<FlatCardProps> = ({ flat, showActions = false, onFlatDeleted}) => {
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [selectedFlatId, setSelectedFlatId] = useState<number | null>(null); 
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false); 
+  const [isDeleting, setIsDeleting] = useState(false); 
 
   if (!flat) {
     console.warn("FlatCard received an undefined or null flat prop.");
@@ -66,6 +82,33 @@ const FlatCard: React.FC<FlatCardProps> = ({ flat, showActions = false }) => {
   const handleCardClick = () => { 
     setSelectedFlatId(flat.id);
     setIsDetailsDialogOpen(true);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => { 
+    e.stopPropagation(); // Prevent card click from opening details dialog
+    setSelectedFlatId(flat.id);
+    setIsDeleteDialogOpen(true);
+  };
+  const confirmDelete = async () => { 
+    if (!selectedFlatId) return;
+
+    setIsDeleting(true);
+    try {
+      await deleteFlat(selectedFlatId);
+      console.log(`Flat ${selectedFlatId} deleted successfully.`);
+      // Call the callback to refresh the list in the parent (DashboardPage)
+      // --- ADD THIS DEBUG LOG ---
+      console.log('FlatCard: Calling onFlatDeleted callback for ID:', selectedFlatId);
+      if (onFlatDeleted) {
+        onFlatDeleted(selectedFlatId);
+      }
+    } catch (error: any) {
+      console.error(`Failed to delete flat ${selectedFlatId}:`, error.response ? error.response.data : error.message);
+      alert(`Failed to delete flat: ${error.response?.data?.message || error.message}`);
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteDialogOpen(false); // Close dialog regardless of success/failure
+    }
   };
 
   return (
@@ -124,19 +167,38 @@ const FlatCard: React.FC<FlatCardProps> = ({ flat, showActions = false }) => {
           </div>
         )}
       </CardContent>
-
       {showActions && (
-        <CardFooter className="p-5 pt-0 flex justify-end space-x-2"> 
-          <Button variant="secondary">Edit</Button> 
-          <Button variant="destructive">Delete</Button> 
-        </CardFooter>
-      )}
+          <CardFooter className="p-5 pt-0 flex justify-end space-x-2">
+            <Button variant="secondary">Edit</Button> {/* Link to handler */}
+            <Button variant="destructive" onClick={handleDeleteClick} disabled={isDeleting}>
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </Button>
+          </CardFooter>
+       )}
     </Card>
     <FlatDetailsDialog
         flatId={selectedFlatId}
         isOpen={isDetailsDialogOpen}
         onClose={() => setIsDetailsDialogOpen(false)}
     />
+    {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your flat
+              listing and remove its data from our servers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} disabled={isDeleting}>
+              {isDeleting ? 'Deleting...' : 'Continue'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };

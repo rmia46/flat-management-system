@@ -1,5 +1,5 @@
 // frontend/src/pages/DashboardPage.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getOwnerFlats } from '../services/api';
 import FlatList from '../components/flats/FlatList';
@@ -20,25 +20,34 @@ const DashboardPage: React.FC = () => {
   const [loadingFlats, setLoadingFlats] = useState(true);
   const [flatsError, setFlatsError] = useState('');
 
-  useEffect(() => {
-    if (user?.userType === 'owner') {
-      const fetchOwnerFlats = async () => {
-        try {
-          setLoadingFlats(true);
-          const response = await getOwnerFlats();
-          setOwnerFlats(response.data);
-          setLoadingFlats(false);
-        } catch (err: any) {
-          console.error('Error fetching owner flats:', err);
-          setFlatsError('Failed to load your flats. Please try again.');
-          setLoadingFlats(false);
-        }
-      };
-      fetchOwnerFlats();
-    } else {
-      setLoadingFlats(false); // Not an owner, so no flats to load
+  // Use useCallback to memoize the fetch function to avoid re-creating it
+  const fetchOwnerFlats = useCallback(async () => { // <-- WRAP IN useCallback
+    if (user?.userType !== 'owner') {
+      setLoadingFlats(false);
+      return;
     }
-  }, [user]);
+
+    try {
+      setLoadingFlats(true);
+      const response = await getOwnerFlats();
+      setOwnerFlats(response.data);
+      setLoadingFlats(false);
+      setFlatsError(''); // Clear error on successful fetch
+    } catch (err: any) {
+      console.error('Error fetching owner flats:', err);
+      setFlatsError('Failed to load your flats. Please try again.');
+      setLoadingFlats(false);
+    }
+  }, [user]); // Dependency on user object
+
+  useEffect(() => {
+    fetchOwnerFlats(); // Call it when component mounts or user changes
+  }, [fetchOwnerFlats]); 
+
+  const handleFlatDeleted = useCallback(() => { // <-- ADD THIS CALLBACK
+    // After a flat is deleted, re-fetch the list of owner flats
+    fetchOwnerFlats();
+  }, [fetchOwnerFlats]);
 
 
   return (
@@ -70,6 +79,7 @@ const DashboardPage: React.FC = () => {
                 title=""
                 emptyMessage="You haven't listed any flats yet."
                 showActions={true}
+                onFlatDeleted={handleFlatDeleted}
               />
             )}
           </>

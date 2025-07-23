@@ -21,20 +21,20 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
   console.log('Request Headers:', req.headers);
 
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    console.log('Authorization header found.');
+    // console.log('Authorization header found.');
     try {
       token = req.headers.authorization.split(' ')[1];
-      console.log('Extracted Token:', token ? token.substring(0, 30) + '...' : 'No token extracted');
+      // console.log('Extracted Token:', token ? token.substring(0, 30) + '...' : 'No token extracted');
 
       const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { id: number; userType: string };
-      console.log('Token Decoded Successfully. Decoded Payload:', decoded);
+      // console.log('Token Decoded Successfully. Decoded Payload:', decoded);
 
       req.user = {
         id: decoded.id,
         userType: decoded.userType,
       };
-      console.log('req.user attached:', req.user);
-      console.log('--- End Auth Middleware Debugging (Success) ---');
+      // console.log('req.user attached:', req.user);
+      // console.log('--- End Auth Middleware Debugging (Success) ---');
       next();
     } catch (error) {
       console.error('Token Verification Failed:', error);

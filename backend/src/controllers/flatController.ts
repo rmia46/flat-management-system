@@ -273,3 +273,40 @@ export const getFlatById = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Server error fetching flat details.' });
   }
 };
+
+// --- Delete a Flat (Owner only) ---
+export const deleteFlat = async (req: Request, res: Response) => {
+  const { id } = req.params; // Flat ID from URL parameter
+  const userId = req.user?.id; // Authenticated user ID
+
+  if (!userId) {
+    return res.status(401).json({ message: 'Not authenticated.' });
+  }
+
+  try {
+    const flat = await prisma.flat.findUnique({
+      where: { id: parseInt(id) },
+      select: { ownerId: true } // Only select ownerId to check authorization
+    });
+
+    if (!flat) {
+      return res.status(404).json({ message: 'Flat not found.' });
+    }
+
+    // Ensure the authenticated user is the owner of this flat
+    if (flat.ownerId !== userId) {
+      return res.status(403).json({ message: 'Not authorized to delete this flat.' });
+    }
+
+    // Delete the flat (Prisma will handle cascading deletes if configured in schema.prisma)
+    await prisma.flat.delete({
+      where: { id: parseInt(id) },
+    });
+
+    res.status(200).json({ message: 'Flat deleted successfully.' });
+
+  } catch (error) {
+    console.error('Error deleting flat:', error);
+    res.status(500).json({ message: 'Server error during flat deletion.' });
+  }
+};

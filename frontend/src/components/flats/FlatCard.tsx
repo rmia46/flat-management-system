@@ -86,7 +86,7 @@ const FlatCard: React.FC<FlatCardProps> = ({ flat, showActions = false }) => {
 
       <CardHeader className="p-5 pb-0"> 
         <CardTitle className="text-xl font-semibold text-foreground mb-1">
-          Flat {flat.flatNumber || flat.id} {flat.houseName ? `in ${flat.houseName}` : ''}
+          Flat {flat.houseName ? `in ${flat.houseName}` : ''}
         </CardTitle>
         <CardDescription className="text-muted-foreground text-sm">{flat.address}</CardDescription>
       </CardHeader>

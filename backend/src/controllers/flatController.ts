@@ -274,6 +274,69 @@ export const getFlatById = async (req: Request, res: Response) => {
   }
 };
 
+// --- Update a Flat (Owner only) ---
+export const updateFlat = async (req: Request, res: Response) => {
+  const { id } = req.params; // Flat ID from URL parameter
+  const userId = req.user?.id; // Authenticated user ID
+
+  if (!userId) {
+    return res.status(401).json({ message: 'Not authenticated.' });
+  }
+
+  const {
+    flatNumber, floor, houseName, houseNumber, address, latitude, longitude,
+    monthlyRentalCost, utilityCost, bedrooms, bathrooms, balcony,
+    minimumStay, description, status
+  } = req.body;
+
+  try {
+    const flat = await prisma.flat.findUnique({
+      where: { id: parseInt(id) },
+      select: { ownerId: true } // Only select ownerId to check authorization
+    });
+
+    if (!flat) {
+      return res.status(404).json({ message: 'Flat not found.' });
+    }
+
+    // Ensure the authenticated user is the owner of this flat
+    if (flat.ownerId !== userId) {
+      return res.status(403).json({ message: 'Not authorized to update this flat.' });
+    }
+
+    // Prepare data for update. Only update fields that are provided in the request body.
+    // Handles conversion from string (from form) to number/boolean/null for Prisma
+    const updateData: Prisma.FlatUpdateInput = {
+      flatNumber: flatNumber !== undefined ? flatNumber : undefined,
+      floor: floor !== undefined ? parseInt(floor) : undefined,
+      houseName: houseName !== undefined ? houseName : undefined,
+      houseNumber: houseNumber !== undefined ? houseNumber : undefined,
+      address: address !== undefined ? address : undefined,
+      latitude: latitude !== undefined ? parseFloat(latitude) : undefined,
+      longitude: longitude !== undefined ? parseFloat(longitude) : undefined,
+      monthlyRentalCost: monthlyRentalCost !== undefined ? parseFloat(monthlyRentalCost) : undefined,
+      utilityCost: utilityCost !== undefined ? parseFloat(utilityCost) : undefined,
+      bedrooms: bedrooms !== undefined ? parseInt(bedrooms) : undefined,
+      bathrooms: bathrooms !== undefined ? parseInt(bathrooms) : undefined,
+      balcony: balcony !== undefined ? balcony : undefined,
+      minimumStay: minimumStay !== undefined ? parseInt(minimumStay) : undefined,
+      description: description !== undefined ? description : undefined,
+      status: status !== undefined ? status : undefined,
+    };
+
+    const updatedFlat = await prisma.flat.update({
+      where: { id: parseInt(id) },
+      data: updateData,
+    });
+
+    res.status(200).json({ message: 'Flat updated successfully.', flat: updatedFlat });
+
+  } catch (error) {
+    console.error('Error updating flat:', error);
+    res.status(500).json({ message: 'Server error during flat update.' });
+  }
+};
+
 // --- Delete a Flat (Owner only) ---
 export const deleteFlat = async (req: Request, res: Response) => {
   const { id } = req.params; // Flat ID from URL parameter

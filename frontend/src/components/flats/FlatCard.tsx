@@ -22,7 +22,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"; 
+
 import { deleteFlat } from '@/services/api';
+import { useNavigate } from 'react-router-dom';
 
 // Define a basic type for a Flat (match your Prisma schema output for frontend usage)
 interface Image {
@@ -62,6 +64,7 @@ interface FlatCardProps {
 }
 
 const FlatCard: React.FC<FlatCardProps> = ({ flat, showActions = false, onFlatDeleted}) => {
+  const navigate = useNavigate();
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [selectedFlatId, setSelectedFlatId] = useState<number | null>(null); 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false); 
@@ -82,6 +85,11 @@ const FlatCard: React.FC<FlatCardProps> = ({ flat, showActions = false, onFlatDe
   const handleCardClick = () => { 
     setSelectedFlatId(flat.id);
     setIsDetailsDialogOpen(true);
+  };
+
+  const handleEditClick = (e: React.MouseEvent) => { 
+    e.stopPropagation(); // Prevent card click
+    navigate(`/flats/edit/${flat.id}`); // Redirect to edit page
   };
 
   const handleDeleteClick = (e: React.MouseEvent) => { 
@@ -169,7 +177,7 @@ const FlatCard: React.FC<FlatCardProps> = ({ flat, showActions = false, onFlatDe
       </CardContent>
       {showActions && (
           <CardFooter className="p-5 pt-0 flex justify-end space-x-2">
-            <Button variant="secondary">Edit</Button> {/* Link to handler */}
+            <Button variant="secondary" onClick={handleEditClick}>Edit</Button> 
             <Button variant="destructive" onClick={handleDeleteClick} disabled={isDeleting}>
               {isDeleting ? 'Deleting...' : 'Delete'}
             </Button>

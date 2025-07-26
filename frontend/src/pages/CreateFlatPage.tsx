@@ -1,8 +1,8 @@
 // frontend/src/pages/CreateFlatPage.tsx
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { createFlat } from '../services/api';
+import { useNavigate, useParams } from 'react-router-dom';
+import { createFlat, getFlatById, updateFlat } from '../services/api';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +25,8 @@ import {
 const CreateFlatPage: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const { id: flatId } = useParams<{ id: string }>();
+  const isEditMode = !!flatId;
 
   const [formData, setFormData] = useState({
     flatNumber: '', floor: '', houseName: '', houseNumber: '', address: '',
@@ -33,32 +35,74 @@ const CreateFlatPage: React.FC = () => {
     status: 'available',
   });
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // For API call itself
+  const [isRedirecting, setIsRedirecting] = useState(false); // For redirection phase
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [initialLoading, setInitialLoading] = useState(isEditMode); // Loading state for initial fetch in edit mode
 
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/login');
-    } else if (user?.userType !== 'owner') {
-      navigate('/dashboard');
+      return;
     }
-  }, [isAuthenticated, user, navigate]);
+    if (user?.userType !== 'owner') {
+      navigate('/dashboard');
+      return;
+    }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const target = e.target as HTMLInputElement; // Cast to HTMLInputElement first
+    if (isEditMode && flatId) {
+      const fetchFlatData = async () => {
+        setInitialLoading(true);
+        try {
+          const res = await getFlatById(parseInt(flatId));
+          const flatData = res.data;
+
+          setFormData({
+            flatNumber: flatData.flatNumber || '',
+            floor: flatData.floor || '',
+            houseName: flatData.houseName || '',
+            houseNumber: flatData.houseNumber || '',
+            address: flatData.address || '',
+            latitude: flatData.latitude !== null ? String(flatData.latitude) : '',
+            longitude: flatData.longitude !== null ? String(flatData.longitude) : '',
+            monthlyRentalCost: flatData.monthlyRentalCost !== null ? String(flatData.monthlyRentalCost) : '',
+            utilityCost: flatData.utilityCost !== null ? String(flatData.utilityCost) : '',
+            bedrooms: flatData.bedrooms !== null ? String(flatData.bedrooms) : '',
+            bathrooms: flatData.bathrooms !== null ? String(flatData.bathrooms) : '',
+            balcony: flatData.balcony || false,
+            minimumStay: flatData.minimumStay !== null ? String(flatData.minimumStay) : '',
+            description: flatData.description || '',
+            status: flatData.status || 'available',
+          });
+        } catch (err) {
+          console.error("Failed to fetch flat data for editing:", err);
+          setError("Failed to load flat data for editing.");
+          // Optionally redirect if flat not found or access denied
+          // navigate('/dashboard');
+        } finally {
+          setInitialLoading(false);
+        }
+      };
+      fetchFlatData();
+    } else {
+      setInitialLoading(false);
+    }
+  }, [isAuthenticated, user, navigate, isEditMode, flatId]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const target = e.target as HTMLInputElement;
     const { name, value } = target;
 
-    // Check if it's a checkbox specifically
     if (target.type === 'checkbox') {
         setFormData({
             ...formData,
-            [name]: target.checked, // 'checked' is only on HTMLInputElement for checkboxes
+            [name]: target.checked,
         });
     } else {
         setFormData({
             ...formData,
-            [name]: value, // 'value' exists on both input and textarea
+            [name]: value,
         });
     }
   };
@@ -71,12 +115,12 @@ const CreateFlatPage: React.FC = () => {
     e.preventDefault();
     setError(''); setSuccessMessage('');
 
-    if (!user || user.userType !== 'owner') { setError('You must be an owner to list a flat.'); return; }
+    if (!user || user.userType !== 'owner') { setError('You must be an owner to list/edit a flat.'); return; }
     if (formData.latitude && isNaN(parseFloat(formData.latitude))) { setError('Latitude must be a valid number.'); return; }
     if (formData.longitude && isNaN(parseFloat(formData.longitude))) { setError('Longitude must be a valid number.'); return; }
-    if (!formData.address || !formData.monthlyRentalCost) { setError('Address and Monthly Rent are required fields.'); return; }
+    if (!formData.address || !formData.monthlyRentalCost) { setError('Full Address and Monthly Rent are required fields.'); return; }
 
-    setLoading(true);
+    setLoading(true); // Start API call loading indicator
     try {
       const dataToSend = {
         ...formData,
@@ -90,65 +134,80 @@ const CreateFlatPage: React.FC = () => {
         minimumStay: formData.minimumStay ? parseInt(formData.minimumStay) : null,
       };
 
-      const res = await createFlat(dataToSend);
-      setSuccessMessage('Flat listed successfully! Redirecting to dashboard...');
-      console.log('Flat creation response:', res.data);
-      setTimeout(() => { navigate('/dashboard'); }, 2000);
+      let res;
+      if (isEditMode && flatId) {
+        res = await updateFlat(parseInt(flatId), dataToSend);
+        setSuccessMessage('Flat updated successfully!');
+      } else {
+        res = await createFlat(dataToSend);
+        setSuccessMessage('Flat listed successfully!');
+      }
+
+      console.log('Flat operation response:', res.data);
+
+      setLoading(false); // API call finished, stop API loading indicator
+      setIsRedirecting(true); // START REDIRECTION PHASE LOADING
+
+      setTimeout(() => {
+        navigate('/dashboard'); // Perform redirection after a short delay
+      }, 1000); // Wait 1 second (adjust as needed)
+
     } catch (err: any) {
-      console.error('Error creating flat:', err.response ? err.response.data : err.message);
-      setError(err.response?.data?.message || 'Failed to list flat. Please try again.');
-    } finally {
-      setLoading(false);
+      console.error('Error during flat operation:', err.response ? err.response.data : err.message);
+      setError(err.response?.data?.message || 'Failed to complete flat operation. Please try again.');
+      setLoading(false); // Ensure loading is false on error
+      setIsRedirecting(false); // Ensure redirection is false on error
     }
   };
 
+  if (initialLoading) {
+    return (
+      <Card className="p-8 shadow-lg border border-border w-full max-w-2xl text-card-foreground text-center">
+        <CardContent><p className="text-xl">Loading flat for editing...</p></CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <Card className="p-8 shadow-lg border border-border w-full max-w-2xl text-card-foreground"> 
+    <Card className="p-8 shadow-lg border border-border w-full max-w-2xl text-card-foreground">
+      {/* Loading Overlay */}
+      {(loading || isRedirecting) && (
+        <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-50 rounded-lg">
+          <p className="text-xl font-semibold text-foreground">
+            {isRedirecting ? 'Redirecting...' : (isEditMode ? 'Updating Flat...' : 'Listing Flat...')}
+          </p>
+        </div>
+      )}
+
       <CardHeader className="text-center pb-6">
-        <CardTitle className="text-3xl font-bold text-foreground mb-2">List Your Flat</CardTitle> 
-        {error && <CardDescription className="text-destructive font-normal">{error}</CardDescription>} 
-        {successMessage && <CardDescription className="text-green-500 font-normal">{successMessage}</CardDescription>} 
+        <CardTitle className="text-3xl font-bold text-foreground mb-2">
+          {isEditMode ? 'Edit Flat Listing' : 'List Your Flat'}
+        </CardTitle>
+        {error && <CardDescription className="text-destructive font-normal">{error}</CardDescription>}
+        {successMessage && <CardDescription className="text-green-500 font-normal">{successMessage}</CardDescription>}
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          
+          {/* All form fields are the same as before */}
           <div>
             <label htmlFor="address" className="block text-muted-foreground text-sm font-medium mb-1">Full Address (Street, City, Area, Country):</label>
             <Input
-              type="text"
-              id="address"
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
+              type="text" id="address" name="address" value={formData.address} onChange={handleChange}
               required
             />
           </div>
 
-          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                   <label htmlFor="latitude" className="block text-muted-foreground text-sm font-medium mb-1">Latitude (Optional):</label>
-                  <Input
-                      type="text"
-                      id="latitude"
-                      name="latitude"
-                      value={formData.latitude}
-                      onChange={handleChange}
-                  />
+                  <Input type="text" id="latitude" name="latitude" value={formData.latitude} onChange={handleChange} />
               </div>
               <div>
                   <label htmlFor="longitude" className="block text-muted-foreground text-sm font-medium mb-1">Longitude (Optional):</label>
-                  <Input
-                      type="text"
-                      id="longitude"
-                      name="longitude"
-                      value={formData.longitude}
-                      onChange={handleChange}
-                  />
+                  <Input type="text" id="longitude" name="longitude" value={formData.longitude} onChange={handleChange} />
               </div>
           </div>
 
-          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label htmlFor="flatNumber" className="block text-muted-foreground text-sm font-medium mb-1">Flat Number:</label>
@@ -184,7 +243,7 @@ const CreateFlatPage: React.FC = () => {
             </div>
           </div>
 
-          
+          {/* Checkbox for Balcony */}
           <div className="flex items-center">
             <input
               type="checkbox"
@@ -192,12 +251,12 @@ const CreateFlatPage: React.FC = () => {
               name="balcony"
               checked={formData.balcony}
               onChange={handleChange}
-              className="h-4 w-4 rounded-sm border border-input bg-background text-primary focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" // Adjusted checkbox styles
+              className="h-4 w-4 rounded-sm border border-input bg-background text-primary focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             />
             <label htmlFor="balcony" className="ml-2 text-muted-foreground text-sm font-medium">Balcony Available</label>
           </div>
 
-          
+          {/* Other details */}
           <div>
             <label htmlFor="minimumStay" className="block text-muted-foreground text-sm font-medium mb-1">Minimum Stay (months, optional):</label>
             <Input type="number" id="minimumStay" name="minimumStay" value={formData.minimumStay} onChange={handleChange} />
@@ -213,10 +272,28 @@ const CreateFlatPage: React.FC = () => {
             ></Textarea>
           </div>
 
-          
+          {/* Status Select (only visible in Edit Mode, and for Owners) */}
+          {isEditMode && user?.userType === 'owner' && (
+            <div>
+              <label htmlFor="status" className="block text-muted-foreground text-sm font-medium mb-1">Flat Status:</label>
+              <Select value={formData.status} onValueChange={handleSelectChange}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="available">Available</SelectItem>
+                  <SelectItem value="booked">Booked</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="unavailable">Unavailable</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Submit Button */}
           <div className="flex justify-center mt-6">
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Listing Flat...' : 'List Flat Now'}
+            <Button type="submit" disabled={loading || isRedirecting}> {/* Disable button during both phases */}
+              {loading || isRedirecting ? (isEditMode ? 'Updating Flat...' : 'Listing Flat...') : (isEditMode ? 'Update Flat' : 'List Flat Now')} {/* Text updates with redirection state */}
             </Button>
           </div>
         </form>

@@ -243,6 +243,11 @@ function App() {
               <CreateFlatPage />
             </PrivateRoute>
           } />
+          <Route path="/flats/edit/:id" element={
+            <PrivateRoute>
+              <CreateFlatPage /> 
+            </PrivateRoute>
+          } />
           <Route path="/dashboard" element={
             <PrivateRoute>
               <DashboardPage />

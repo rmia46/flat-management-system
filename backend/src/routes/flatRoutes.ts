@@ -1,7 +1,7 @@
 // backend/src/routes/flatRoutes.ts
 import { Router } from 'express';
 import multer from 'multer';
-import { createFlat, getAllFlats, getOwnerFlats, getFlatById, deleteFlat } from '../controllers/flatController';
+import { createFlat, getAllFlats, getOwnerFlats, getFlatById, updateFlat, deleteFlat } from '../controllers/flatController';
 import { protect, authorize } from '../middlewares/authMiddleware'; // Import auth middleware
 
 const router = Router();
@@ -20,5 +20,8 @@ router.get('/:id', protect, getFlatById);
 
 // Protected route to delete a flat (owner only)
 router.delete('/:id', protect, authorize('owner'), deleteFlat);
+
+// Protected route to update a flat (owner only)
+router.put('/:id', protect, authorize('owner'), updateFlat);
 
 export default router;

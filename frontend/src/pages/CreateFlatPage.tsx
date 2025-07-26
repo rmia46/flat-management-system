@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 
 const CreateFlatPage: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
@@ -35,11 +36,11 @@ const CreateFlatPage: React.FC = () => {
     status: 'available',
   });
 
-  const [loading, setLoading] = useState(false); // For API call itself
-  const [isRedirecting, setIsRedirecting] = useState(false); // For redirection phase
+  const [loading, setLoading] = useState(false); // For API call and brief post-success delay
+  // REMOVED: const [isRedirecting, setIsRedirecting] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const [initialLoading, setInitialLoading] = useState(isEditMode); // Loading state for initial fetch in edit mode
+  const [initialLoading, setInitialLoading] = useState(isEditMode);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -78,8 +79,6 @@ const CreateFlatPage: React.FC = () => {
         } catch (err) {
           console.error("Failed to fetch flat data for editing:", err);
           setError("Failed to load flat data for editing.");
-          // Optionally redirect if flat not found or access denied
-          // navigate('/dashboard');
         } finally {
           setInitialLoading(false);
         }
@@ -145,18 +144,18 @@ const CreateFlatPage: React.FC = () => {
 
       console.log('Flat operation response:', res.data);
 
-      setLoading(false); // API call finished, stop API loading indicator
-      setIsRedirecting(true); // START REDIRECTION PHASE LOADING
-
+      // REDIRECTION LOGIC: Show success, then redirect after delay
       setTimeout(() => {
-        navigate('/dashboard'); // Perform redirection after a short delay
-      }, 1000); // Wait 1 second (adjust as needed)
+        navigate('/dashboard');
+      }, 1500); // 1.5 seconds delay to show success message and for user to register it
 
     } catch (err: any) {
       console.error('Error during flat operation:', err.response ? err.response.data : err.message);
       setError(err.response?.data?.message || 'Failed to complete flat operation. Please try again.');
       setLoading(false); // Ensure loading is false on error
-      setIsRedirecting(false); // Ensure redirection is false on error
+    } finally {
+      // No need to set isRedirecting here, loading will manage button state
+      // The timeout handles the actual navigation.
     }
   };
 
@@ -170,14 +169,8 @@ const CreateFlatPage: React.FC = () => {
 
   return (
     <Card className="p-8 shadow-lg border border-border w-full max-w-2xl text-card-foreground">
-      {/* Loading Overlay */}
-      {(loading || isRedirecting) && (
-        <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-50 rounded-lg">
-          <p className="text-xl font-semibold text-foreground">
-            {isRedirecting ? 'Redirecting...' : (isEditMode ? 'Updating Flat...' : 'Listing Flat...')}
-          </p>
-        </div>
-      )}
+      {/* REMOVED: Loading Overlay */}
+      {/* {(loading || isRedirecting) && ( ... )} */}
 
       <CardHeader className="text-center pb-6">
         <CardTitle className="text-3xl font-bold text-foreground mb-2">
@@ -292,8 +285,15 @@ const CreateFlatPage: React.FC = () => {
 
           {/* Submit Button */}
           <div className="flex justify-center mt-6">
-            <Button type="submit" disabled={loading || isRedirecting}> {/* Disable button during both phases */}
-              {loading || isRedirecting ? (isEditMode ? 'Updating Flat...' : 'Listing Flat...') : (isEditMode ? 'Update Flat' : 'List Flat Now')} {/* Text updates with redirection state */}
+            <Button type="submit" disabled={loading}> {/* Disable only during API call */}
+              {loading ? (
+                <>
+                  <LoadingSpinner className="mr-2" size={16} /> {/* Spinner next to text */}
+                  {isEditMode ? 'Updating...' : 'Listing...'}
+                </>
+              ) : (
+                isEditMode ? 'Update Flat' : 'List Flat Now'
+              )}
             </Button>
           </div>
         </form>

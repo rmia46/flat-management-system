@@ -47,6 +47,7 @@ const CreateFlatPage: React.FC = () => {
   const [availableAmenities, setAvailableAmenities] = useState<Amenity[]>([]); // <--- NEW STATE for available amenities
 
   const [loading, setLoading] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [initialLoading, setInitialLoading] = useState(isEditMode);
@@ -168,11 +169,13 @@ const CreateFlatPage: React.FC = () => {
       }
       console.log('Flat operation response:', res.data);
       setLoading(false);
-      setTimeout(() => { navigate('/dashboard'); }, 1500);
+      setIsRedirecting(true);
+      setTimeout(() => { navigate('/dashboard'); }, 1000);
     } catch (err: any) {
       console.error('Error during flat operation:', err.response ? err.response.data : err.message);
       setError(err.response?.data?.message || 'Failed to complete flat operation. Please try again.');
       setLoading(false);
+      setIsRedirecting(false);
     }
   };
 
@@ -320,14 +323,18 @@ const CreateFlatPage: React.FC = () => {
               </Select>
             </div>
           )}
-
           {/* Submit Button */}
           <div className="flex justify-center mt-6">
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading || isRedirecting}> {/* Disable button during both phases */}
               {loading ? (
                 <>
                   <LoadingSpinner className="mr-2" size={16} />
                   {isEditMode ? 'Updating...' : 'Listing...'}
+                </>
+              ) : isRedirecting ? (
+                <>
+                  <LoadingSpinner className="mr-2" size={16} />
+                  Updating...
                 </>
               ) : (
                 isEditMode ? 'Update Flat' : 'List Flat Now'

@@ -48,7 +48,6 @@ interface Flat {
   monthlyRentalCost: number | null; // Allow null for safety
   bedrooms: number | null;
   bathrooms: number | null;
-  balcony: boolean | null;
   description: string | null;
   status: string;
   rating: number | null; // Or Decimal type if you handle it specifically
@@ -149,7 +148,6 @@ const FlatCard: React.FC<FlatCardProps> = ({ flat, showActions = false, onFlatDe
           <p><strong>Baths:</strong> {flat.bathrooms ?? 'N/A'}</p>
           <p><strong>Status:</strong> <span className={`font-medium ${flat.status === 'available' ? 'text-green-600' : 'text-destructive'}`}> {flat.status} </span></p>
           {flat.rating !== null && flat.rating !== undefined && <p><strong>Rating:</strong> {flat.rating.toFixed(1)}/5</p>}
-          {flat.balcony && <p><strong>Balcony:</strong> Yes</p>}
         </div>
 
         {flat.description && (

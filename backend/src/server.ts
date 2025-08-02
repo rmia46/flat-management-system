@@ -3,7 +3,9 @@ import app from './app';
 import dotenv from 'dotenv';
 
 // Load environment variables from .env file
-dotenv.config();
+if (process.env.NODE_ENV !== 'production' && process.env.VERCEL_ENV !== 'production') {
+    dotenv.config();
+}
 
 const PORT = process.env.PORT || 5000;
 

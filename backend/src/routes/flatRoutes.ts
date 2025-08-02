@@ -1,6 +1,5 @@
 // backend/src/routes/flatRoutes.ts
 import { Router } from 'express';
-import multer from 'multer';
 import { 
     createFlat, 
     getAllFlats, 
@@ -23,6 +22,9 @@ router.post('/', protect, authorize('owner'), createFlat);
 // Protected route for owners to get their own flats
 router.get('/owner', protect, authorize('owner'), getOwnerFlats);
 
+// Public route to get all amenities
+router.get('/amenities', getAllAmenities); 
+
 // Public route to get a single flat's details by ID (data visible conditionally)
 router.get('/:id', protect, getFlatById);
 
@@ -31,8 +33,5 @@ router.delete('/:id', protect, authorize('owner'), deleteFlat);
 
 // Protected route to update a flat (owner only)
 router.put('/:id', protect, authorize('owner'), updateFlat);
-
-// Public route to get all amenities
-router.get('/amenities', getAllAmenities); 
 
 export default router;

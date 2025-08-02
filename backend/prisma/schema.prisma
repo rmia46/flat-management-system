@@ -47,7 +47,6 @@ model Flat {
   rating            Decimal?    @map("Rating") @db.Decimal(3,2) // DECIMAL(3,2) in MySQL
   bedrooms          Int?
   bathrooms         Int?
-  balcony           Boolean     @default(false)
   monthlyRentalCost Decimal     @map("MonthlyRentalCost") @db.Decimal(10,2)
   utilityCost       Decimal?    @map("UtilityCost") @db.Decimal(10,2)
   minimumStay       Int?        @map("MinimumStay") // Minimum months or days

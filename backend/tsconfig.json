@@ -9,7 +9,8 @@
     "skipLibCheck": true,             /* Skip type checking of all declaration files */
     "forceConsistentCasingInFileNames": true, /* Ensure that casing is correct in imports. */
     "resolveJsonModule": true,        /* Allows importing modules with a ‘.json’ extension */
-    "sourceMap": true                 /* Emit sourcemaps for debugging */
+    "sourceMap": true,                /* Emit sourcemaps for debugging */
+    "types": ["node"]
   },
   "include": [
     "src/**/*.ts"                     /* Include all .ts files in src folder */

@@ -30,3 +30,4 @@ export const getOwnerFlats = () => api.get('/flats/owner');
 export const getFlatById = (id: number) => api.get(`/flats/${id}`);
 export const deleteFlat = (id: number) => api.delete(`/flats/${id}`);
 export const updateFlat = (id: number, flatData: any) => api.put(`/flats/${id}`, flatData);
+export const getAllAmenities = () => api.get('/flats/amenities');

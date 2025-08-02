@@ -20,7 +20,7 @@ export const createFlat = async (req: Request, res: Response) => {
   const {
     flatNumber, floor, houseName, houseNumber, address, latitude, longitude, // Added houseNumber
     monthlyRentalCost, utilityCost, bedrooms, bathrooms, balcony,
-    minimumStay, description, status
+    minimumStay, description, status, amenities
   } = req.body;
 
   // Basic validation (add more robust validation later)
@@ -54,6 +54,11 @@ export const createFlat = async (req: Request, res: Response) => {
         minimumStay: minimumStay ? parseInt(minimumStay) : null,
         description,
         status: status || 'available', // Default to available
+        amenities: {
+          create: amenities ? amenities.map((amenity: { id: number }) => ({
+            amenityId: amenity.id,
+          })) : [],
+        },
       },
     });
 
@@ -276,36 +281,23 @@ export const getFlatById = async (req: Request, res: Response) => {
 
 // --- Update a Flat (Owner only) ---
 export const updateFlat = async (req: Request, res: Response) => {
-  const { id } = req.params; // Flat ID from URL parameter
-  const userId = req.user?.id; // Authenticated user ID
+  const { id } = req.params;
+  const userId = req.user?.id;
 
-  if (!userId) {
-    return res.status(401).json({ message: 'Not authenticated.' });
-  }
+  if (!userId) { return res.status(401).json({ message: 'Not authenticated.' }); }
 
   const {
     flatNumber, floor, houseName, houseNumber, address, latitude, longitude,
     monthlyRentalCost, utilityCost, bedrooms, bathrooms, balcony,
-    minimumStay, description, status
+    minimumStay, description, status,
+    amenities 
   } = req.body;
 
   try {
-    const flat = await prisma.flat.findUnique({
-      where: { id: parseInt(id) },
-      select: { ownerId: true } // Only select ownerId to check authorization
-    });
+    const flat = await prisma.flat.findUnique({ where: { id: parseInt(id) }, select: {id: true, ownerId: true } });
+    if (!flat) { return res.status(404).json({ message: 'Flat not found.' }); }
+    if (flat.ownerId !== userId) { return res.status(403).json({ message: 'Not authorized to update this flat.' }); }
 
-    if (!flat) {
-      return res.status(404).json({ message: 'Flat not found.' });
-    }
-
-    // Ensure the authenticated user is the owner of this flat
-    if (flat.ownerId !== userId) {
-      return res.status(403).json({ message: 'Not authorized to update this flat.' });
-    }
-
-    // Prepare data for update. Only update fields that are provided in the request body.
-    // Handles conversion from string (from form) to number/boolean/null for Prisma
     const updateData: Prisma.FlatUpdateInput = {
       flatNumber: flatNumber !== undefined ? flatNumber : undefined,
       floor: floor !== undefined ? parseInt(floor) : undefined,
@@ -324,13 +316,18 @@ export const updateFlat = async (req: Request, res: Response) => {
       status: status !== undefined ? status : undefined,
     };
 
-    const updatedFlat = await prisma.flat.update({
-      where: { id: parseInt(id) },
-      data: updateData,
-    });
+    if (amenities) {
+        updateData.amenities = {
+            set: amenities.map((amenity: { id: number }) => ({
+                flatId: flat.id,
+                amenityId: amenity.id,
+            }))
+        };
+    }
+    // --- END ADDITION ---
 
+    const updatedFlat = await prisma.flat.update({ where: { id: parseInt(id) }, data: updateData });
     res.status(200).json({ message: 'Flat updated successfully.', flat: updatedFlat });
-
   } catch (error) {
     console.error('Error updating flat:', error);
     res.status(500).json({ message: 'Server error during flat update.' });
@@ -371,5 +368,22 @@ export const deleteFlat = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error deleting flat:', error);
     res.status(500).json({ message: 'Server error during flat deletion.' });
+  }
+};
+// --- Get All Amenities ---
+export const getAllAmenities = async (req: Request, res: Response) => {
+  try {
+    const amenities = await prisma.amenity.findMany({
+      select: {
+        id: true,
+        name: true,
+        description: true,
+      }
+    });
+
+    res.status(200).json(amenities);
+  } catch (error) {
+    console.error('Error fetching amenities:', error);
+    res.status(500).json({ message: 'Server error fetching amenities.' });
   }
 };

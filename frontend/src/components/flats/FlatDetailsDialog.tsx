@@ -9,8 +9,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { getFlatById } from '@/services/api';
+import { getFlatById, createBooking} from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
+import { Input } from '@/components/ui/input';
 
 // Define a more comprehensive Flat type to match backend 'select' and 'include'
 interface FlatDetails {
@@ -57,12 +58,16 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, isOpen, o
   const [flatDetails, setFlatDetails] = useState<FlatDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [bookingDates, setBookingDates] = useState({ startDate: '', endDate: '' });
+  const [bookingStatusMessage, setBookingStatusMessage] = useState('');
+  const [isBookingLoading, setIsBookingLoading] = useState(false);
 
   useEffect(() => {
     if (!flatId || !isOpen) {
       setFlatDetails(null);
       setLoading(false);
       setError('');
+      setBookingStatusMessage('');
       return;
     }
 
@@ -84,6 +89,46 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, isOpen, o
     // Re-fetch if flatId, isOpen change or if user auth status changes
   }, [flatId, isOpen, isAuthenticated, user, isLoading]);
 
+  // Handle booking event
+  const handleBookingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBookingStatusMessage('');
+    setIsBookingLoading(true);
+
+    if (!user || user.userType !== 'tenant') {
+        setBookingStatusMessage('You must be a tenant to book a flat.');
+        setIsBookingLoading(false);
+        return;
+    }
+
+    if (!bookingDates.startDate || !bookingDates.endDate) {
+        setBookingStatusMessage('Start and End dates are required.');
+        setIsBookingLoading(false);
+        return;
+    }
+
+    try {
+      const bookingData = {
+        startDate: new Date(bookingDates.startDate),
+        endDate: new Date(bookingDates.endDate),
+      };
+      const response = await createBooking(flatId as number, bookingData);
+      setBookingStatusMessage(response.data.message);
+
+      // Optionally, close the dialog on success
+      // setTimeout(() => {
+      //   onClose();
+      // }, 2000);
+
+    } catch (err: any) {
+        const errorMessage = err.response?.data?.message || 'Failed to create booking.';
+        setBookingStatusMessage(errorMessage);
+        console.error('Booking creation failed:', err);
+    } finally {
+        setIsBookingLoading(false);
+    }
+  };
+
   // Determine what to display based on authentication status and ownership
   const getFlatContent = () => {
     if (loading) {
@@ -98,6 +143,7 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, isOpen, o
 
     const showSensitiveDetails = isAuthenticated; // <--- Condition: Show if ANY user is authenticated
     const isOwnerOfThisFlat = user && flatDetails.ownerId === user.id && user.userType === 'owner';
+    const isTenant = user && user.userType === 'tenant';
 
     return (
       <div className="space-y-4">
@@ -182,6 +228,28 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, isOpen, o
             </Button>
           </div>
         )}
+
+        {/* Booking Form (Visible to tenants if flat is available) */}
+        {isTenant && flatDetails.status === 'available' && (
+          <div className="mt-6 border-t border-border pt-4">
+            <h3 className="text-xl font-bold text-foreground mb-4">Book this Flat</h3>
+            <form onSubmit={handleBookingSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="startDate" className="block text-sm font-medium text-muted-foreground mb-1">Start Date:</label>
+                <Input type="date" id="startDate" name="startDate" value={bookingDates.startDate} onChange={(e) => setBookingDates({ ...bookingDates, startDate: e.target.value })} required />
+              </div>
+              <div>
+                <label htmlFor="endDate" className="block text-sm font-medium text-muted-foreground mb-1">End Date:</label>
+                <Input type="date" id="endDate" name="endDate" value={bookingDates.endDate} onChange={(e) => setBookingDates({ ...bookingDates, endDate: e.target.value })} required />
+              </div>
+              <Button type="submit" disabled={isBookingLoading}>
+                {isBookingLoading ? 'Processing Booking...' : 'Book Now'}
+              </Button>
+              {bookingStatusMessage && <p className="mt-2 text-sm text-center font-medium text-green-500">{bookingStatusMessage}</p>}
+            </form>
+          </div>
+        )}
+
       </div>
     );
   };

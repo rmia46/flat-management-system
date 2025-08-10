@@ -3,12 +3,12 @@ import express from 'express';
 import cors from 'cors';
 import flatRoutes from './routes/flatRoutes';
 import authRoutes from './routes/authRoutes';
-
+import bookingRoutes from './routes/bookingRoutes'; 
 const app = express();
 
 // Middleware
-app.use(cors()); // Enable CORS for all origins
-app.use(express.json()); // Enable JSON body parsing
+app.use(cors());
+app.use(express.json());
 
 // Basic test route
 app.get('/', (req, res) => {
@@ -18,5 +18,6 @@ app.get('/', (req, res) => {
 // Register API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/flats', flatRoutes);
+app.use('/api/bookings', bookingRoutes);
 
 export default app;

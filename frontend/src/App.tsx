@@ -7,6 +7,7 @@ import HomePage from './pages/HomePage';
 import DashboardPage from './pages/DashboardPage';
 import AllFlatsPage from './pages/AllFlatsPage';
 import CreateFlatPage from './pages/CreateFlatPage';
+import BookingsPage from './pages/BookingsPage';
 
 import { useAuth } from './context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -251,6 +252,12 @@ function App() {
           <Route path="/dashboard" element={
             <PrivateRoute>
               <DashboardPage />
+            </PrivateRoute>
+          } />
+          {/*Booking Route */}
+          <Route path="/dashboard/bookings" element={
+            <PrivateRoute>
+              <BookingsPage />
             </PrivateRoute>
           } />
           {/* Add placeholder routes for new menu items */}

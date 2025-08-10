@@ -64,11 +64,14 @@ const DashboardPage: React.FC = () => {
       <CardContent>
         {user?.userType === 'owner' && (
           <>
+            
             <h3 className="text-2xl font-semibold text-foreground mb-4">Your Listed Flats</h3> 
             <Button asChild className="mb-6 inline-block"> 
               <Link to="/flats/create">+ List New Flat</Link>
             </Button>
-
+            <Button asChild className="mb-6 inline-block">
+            <Link to="/dashboard/bookings">Bookings</Link>
+            </Button>
             {loadingFlats ? (
               <p className="text-muted-foreground">Loading your flats...</p>
             ) : flatsError ? (

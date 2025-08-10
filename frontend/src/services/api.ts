@@ -1,7 +1,9 @@
 // frontend/src/services/api.ts
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL; // Accessing Vite env variables
+const API_BASE_URL = import.meta.env.PROD
+  ? window.location.origin + '/api'
+  : import.meta.env.VITE_API_BASE_URL;
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -10,7 +12,6 @@ const api = axios.create({
   },
 });
 
-// Function to set the Authorization header for authenticated requests
 export const setAuthToken = (token: string | null) => {
   if (token) {
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -31,3 +32,10 @@ export const getFlatById = (id: number) => api.get(`/flats/${id}`);
 export const deleteFlat = (id: number) => api.delete(`/flats/${id}`);
 export const updateFlat = (id: number, flatData: any) => api.put(`/flats/${id}`, flatData);
 export const getAllAmenities = () => api.get('/flats/amenities');
+
+// --- Booking API Calls ---
+export const createBooking = (flatId: number, bookingData: { startDate: Date; endDate: Date }) => api.post(`/flats/${flatId}/book`, bookingData);
+export const getOwnerBookings = () => api.get('/bookings/owner');
+export const getTenantBookings = () => api.get('/bookings/tenant');
+export const approveBooking = (bookingId: number) => api.put(`/bookings/${bookingId}/approve`);
+export const disapproveBooking = (bookingId: number) => api.put(`/bookings/${bookingId}/disapprove`);

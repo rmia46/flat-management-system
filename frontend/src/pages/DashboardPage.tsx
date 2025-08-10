@@ -89,11 +89,16 @@ const DashboardPage: React.FC = () => {
         )}
 
         {user?.userType === 'tenant' && (
-          <p className="mt-4 text-muted-foreground text-base">
+        <>
+        <p className="mt-4 text-muted-foreground text-base">
             Welcome to your tenant dashboard. Find your next flat through the navigation bar!
           </p>
+        <Button asChild className="mb-6 inline-block">
+            <Link to="/dashboard/bookings">Bookings</Link>
+            </Button>
+        </>
+          
         )}
-
         {!user && (
              <p className="mt-4 text-muted-foreground text-base">
                Please log in to view your dashboard.

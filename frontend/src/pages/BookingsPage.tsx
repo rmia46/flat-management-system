@@ -7,7 +7,7 @@ import {
 } from '../services/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from 'sonner';
+import { toast } from 'sonner'; // <--- IMPORT SONNER TOAST
 
 const BookingsPage: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
@@ -52,16 +52,16 @@ const BookingsPage: React.FC = () => {
     try {
       if (action === 'approve') {
         await approveBooking(bookingId);
-        toast.success('Booking approved successfully!');
+        toast.success('Booking approved successfully!'); // <--- USE SONNER
       } else {
         await disapproveBooking(bookingId);
-        toast.info('Booking disapproved.');
+        toast.info('Booking disapproved.'); // <--- USE SONNER
       }
       fetchBookings(); // Re-fetch the list to update the UI
     } catch (err: any) {
       console.error(`Failed to ${action} booking:`, err);
       const message = err.response?.data?.message || 'Failed to perform action.';
-      toast.error(message);
+      toast.error(message); // <--- USE SONNER
     }
   };
 
@@ -94,7 +94,12 @@ const BookingsPage: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            <p><strong>Status:</strong> <span className="font-semibold">{booking.status}</span></p>
+            <p>
+              <strong>Status:</strong>
+              <span className={`font-semibold ml-2 ${booking.status === 'approved' ? 'text-green-600' : ''}`}>
+                {booking.status}
+              </span>
+            </p>
             {user?.userType === 'owner' ? (
               <p><strong>Tenant:</strong> {booking.user.firstName} {booking.user.lastName} ({booking.user.email})</p>
             ) : (

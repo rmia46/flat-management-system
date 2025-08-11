@@ -26,6 +26,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { Toaster } from 'sonner';
 
 // Utility component from shadcn/ui docs for list items in NavigationMenuContent
 const ListItem = React.forwardRef<
@@ -270,6 +271,8 @@ function App() {
       <footer className="bg-card text-card-foreground p-4 text-center border-t border-border">
         <p>&copy; {new Date().getFullYear()} Flat Manager. All rights reserved.</p>
       </footer>
+      {/* The toast provider */}
+      <Toaster richColors position="top-center" />
     </div>
   );
 }

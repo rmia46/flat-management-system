@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/card"; // IMPORT SHADCN CARD COMPONENTS
 
 const DashboardPage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, refreshTrigger } = useAuth();
   const [ownerFlats, setOwnerFlats] = useState<any[]>([]);
   const [loadingFlats, setLoadingFlats] = useState(true);
   const [flatsError, setFlatsError] = useState('');
@@ -42,7 +42,7 @@ const DashboardPage: React.FC = () => {
 
   useEffect(() => {
     fetchOwnerFlats(); // Call it when component mounts or user changes
-  }, [fetchOwnerFlats]); 
+  }, [fetchOwnerFlats, refreshTrigger]); 
 
   const handleFlatDeleted = useCallback(() => { // <-- ADD THIS CALLBACK
     // After a flat is deleted, re-fetch the list of owner flats
@@ -66,12 +66,14 @@ const DashboardPage: React.FC = () => {
           <>
             
             <h3 className="text-2xl font-semibold text-foreground mb-4">Your Listed Flats</h3> 
-            <Button asChild className="mb-6 inline-block"> 
-              <Link to="/flats/create">+ List New Flat</Link>
-            </Button>
-            <Button asChild className="mb-6 inline-block">
-            <Link to="/dashboard/bookings">Bookings</Link>
-            </Button>
+            <div className="flex gap-4 mb-6">
+              <Button asChild>
+                <Link to="/flats/create">+ List New Flat</Link>
+              </Button>
+              <Button asChild>
+                <Link to="/dashboard/bookings">Bookings</Link>
+              </Button>
+            </div>
             {loadingFlats ? (
               <p className="text-muted-foreground">Loading your flats...</p>
             ) : flatsError ? (

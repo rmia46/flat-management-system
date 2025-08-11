@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { toast } from 'sonner';
 
 // Define type for Amenity fetched from API
 interface Amenity {
@@ -40,16 +41,15 @@ const CreateFlatPage: React.FC = () => {
   const [formData, setFormData] = useState({
     flatNumber: '', floor: '', houseName: '', houseNumber: '', address: '',
     latitude: '', longitude: '', monthlyRentalCost: '', utilityCost: '',
-    bedrooms: '', bathrooms: '', balcony: false, minimumStay: '', description: '',
+    bedrooms: '', bathrooms: '', minimumStay: '', description: '',
     status: 'available',
   });
-  const [selectedAmenities, setSelectedAmenities] = useState<number[]>([]); // <--- NEW STATE for selected amenity IDs
-  const [availableAmenities, setAvailableAmenities] = useState<Amenity[]>([]); // <--- NEW STATE for available amenities
+  const [selectedAmenities, setSelectedAmenities] = useState<number[]>([]);
+  const [availableAmenities, setAvailableAmenities] = useState<Amenity[]>([]);
 
   const [loading, setLoading] = useState(false);
-  const [isRedirecting, setIsRedirecting] = useState(false);
-  const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  // REMOVED: const [error, setError] = useState('');
+  // REMOVED: const [successMessage, setSuccessMessage] = useState('');
   const [initialLoading, setInitialLoading] = useState(isEditMode);
 
   useEffect(() => {
@@ -68,6 +68,7 @@ const CreateFlatPage: React.FC = () => {
         setAvailableAmenities(res.data);
       } catch (err) {
         console.error("Failed to fetch amenities:", err);
+        toast.error("Failed to fetch amenities.");
       }
     };
 
@@ -80,7 +81,6 @@ const CreateFlatPage: React.FC = () => {
           const res = await getFlatById(parseInt(flatId));
           const flatData = res.data;
 
-          // Pre-fill form with existing data
           setFormData({
             flatNumber: flatData.flatNumber || '', floor: flatData.floor || '',
             houseName: flatData.houseName || '', houseNumber: flatData.houseNumber || '',
@@ -90,19 +90,17 @@ const CreateFlatPage: React.FC = () => {
             utilityCost: flatData.utilityCost !== null ? String(flatData.utilityCost) : '',
             bedrooms: flatData.bedrooms !== null ? String(flatData.bedrooms) : '',
             bathrooms: flatData.bathrooms !== null ? String(flatData.bathrooms) : '',
-            balcony: flatData.balcony || false, minimumStay: flatData.minimumStay !== null ? String(flatData.minimumStay) : '',
+            minimumStay: flatData.minimumStay !== null ? String(flatData.minimumStay) : '',
             description: flatData.description || '', status: flatData.status || 'available',
           });
 
-          // Set selected amenities for edit mode
           if (flatData.amenities) {
             const amenityIds = flatData.amenities.map((a: any) => a.amenity.id);
             setSelectedAmenities(amenityIds);
           }
-
         } catch (err) {
           console.error("Failed to fetch flat data for editing:", err);
-          setError("Failed to load flat data for editing.");
+          toast.error("Failed to fetch flat data for editing.");
         } finally {
           setInitialLoading(false);
         }
@@ -123,7 +121,7 @@ const CreateFlatPage: React.FC = () => {
     }
   };
 
-  const handleAmenityChange = (amenityId: number) => { // <--- NEW HANDLER for checkboxes
+  const handleAmenityChange = (amenityId: number) => {
     setSelectedAmenities(prev =>
       prev.includes(amenityId)
         ? prev.filter(id => id !== amenityId)
@@ -137,12 +135,23 @@ const CreateFlatPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(''); setSuccessMessage('');
 
-    if (!user || user.userType !== 'owner') { setError('You must be an owner to list/edit a flat.'); return; }
-    if (formData.latitude && isNaN(parseFloat(formData.latitude))) { setError('Latitude must be a valid number.'); return; }
-    if (formData.longitude && isNaN(parseFloat(formData.longitude))) { setError('Longitude must be a valid number.'); return; }
-    if (!formData.address || !formData.monthlyRentalCost) { setError('Full Address and Monthly Rent are required fields.'); return; }
+    if (!user || user.userType !== 'owner') { 
+      toast.error('You must be an owner to list/edit a flat.'); 
+      return; 
+    }
+    if (formData.latitude && isNaN(parseFloat(formData.latitude))) { 
+      toast.error('Latitude must be a valid number.'); 
+      return; 
+    }
+    if (formData.longitude && isNaN(parseFloat(formData.longitude))) { 
+      toast.error('Longitude must be a valid number.'); 
+      return; 
+    }
+    if (!formData.address || !formData.monthlyRentalCost) { 
+      toast.error('Full Address and Monthly Rent are required fields.'); 
+      return; 
+    }
 
     setLoading(true);
     try {
@@ -156,26 +165,28 @@ const CreateFlatPage: React.FC = () => {
         bathrooms: formData.bathrooms ? parseInt(formData.bathrooms) : null,
         floor: formData.floor ? parseInt(formData.floor) : null,
         minimumStay: formData.minimumStay ? parseInt(formData.minimumStay) : null,
-        amenities: selectedAmenities.map(id => ({ id })), // <--- UPDATE: Pass amenity IDs
+        amenities: selectedAmenities.map(id => ({ id })),
       };
 
       let res;
       if (isEditMode && flatId) {
         res = await updateFlat(parseInt(flatId), dataToSend);
-        setSuccessMessage('Flat updated successfully!');
+        toast.success('Flat updated successfully!');
       } else {
         res = await createFlat(dataToSend);
-        setSuccessMessage('Flat listed successfully!');
+        toast.success('Flat listed successfully!');
       }
       console.log('Flat operation response:', res.data);
-      setLoading(false);
-      setIsRedirecting(true);
-      setTimeout(() => { navigate('/dashboard'); }, 1000);
+
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 1500);
+
     } catch (err: any) {
       console.error('Error during flat operation:', err.response ? err.response.data : err.message);
-      setError(err.response?.data?.message || 'Failed to complete flat operation. Please try again.');
+      toast.error(err.response?.data?.message || 'Failed to complete flat operation. Please try again.');
+    } finally {
       setLoading(false);
-      setIsRedirecting(false);
     }
   };
 
@@ -193,12 +204,12 @@ const CreateFlatPage: React.FC = () => {
         <CardTitle className="text-3xl font-bold text-foreground mb-2">
           {isEditMode ? 'Edit Flat Listing' : 'List Your Flat'}
         </CardTitle>
-        {error && <CardDescription className="text-destructive font-normal">{error}</CardDescription>}
-        {successMessage && <CardDescription className="text-green-500 font-normal">{successMessage}</CardDescription>}
+        {/* REMOVED: {error && <CardDescription className="text-destructive font-normal">{error}</CardDescription>} */}
+        {/* REMOVED: {successMessage && <CardDescription className="text-green-500 font-normal">{successMessage}</CardDescription>} */}
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Address */}
+          {/* All form fields are the same as before */}
           <div>
             <label htmlFor="address" className="block text-muted-foreground text-sm font-medium mb-1">Full Address (Street, City, Area, Country):</label>
             <Input
@@ -219,7 +230,6 @@ const CreateFlatPage: React.FC = () => {
               </div>
           </div>
 
-          {/* Basic Flat Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label htmlFor="flatNumber" className="block text-muted-foreground text-sm font-medium mb-1">Flat Number:</label>
@@ -254,20 +264,7 @@ const CreateFlatPage: React.FC = () => {
               <Input type="number" id="bathrooms" name="bathrooms" value={formData.bathrooms} onChange={handleChange} />
             </div>
           </div>
-
-          {/* Checkbox for Balcony */}
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="balcony"
-              name="balcony"
-              checked={formData.balcony}
-              onChange={handleChange}
-              className="h-4 w-4 rounded-sm border border-input bg-background text-primary focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-            <label htmlFor="balcony" className="ml-2 text-muted-foreground text-sm font-medium">Balcony Available</label>
-          </div>
-
+          
           {/* Amenity Checkboxes */}
           <div>
             <label className="block text-muted-foreground text-sm font-medium mb-1">Amenities:</label>
@@ -323,18 +320,14 @@ const CreateFlatPage: React.FC = () => {
               </Select>
             </div>
           )}
+
           {/* Submit Button */}
           <div className="flex justify-center mt-6">
-            <Button type="submit" disabled={loading || isRedirecting}> {/* Disable button during both phases */}
+            <Button type="submit" disabled={loading}>
               {loading ? (
                 <>
                   <LoadingSpinner className="mr-2" size={16} />
                   {isEditMode ? 'Updating...' : 'Listing...'}
-                </>
-              ) : isRedirecting ? (
-                <>
-                  <LoadingSpinner className="mr-2" size={16} />
-                  Updating...
                 </>
               ) : (
                 isEditMode ? 'Update Flat' : 'List Flat Now'

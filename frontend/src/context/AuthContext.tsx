@@ -18,10 +18,12 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
-  isLoading: boolean; // <--- This MUST be in the interface
+  isLoading: boolean;
   loginUser: (credentials: any) => Promise<boolean>;
   registerUser: (userData: any) => Promise<boolean>;
   logout: () => void;
+  refreshTrigger: number; 
+  triggerRefresh: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,7 +36,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState(true); // <--- This state MUST be initialized here
+  const [isLoading, setIsLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0); 
   const navigate = useNavigate();
 
   console.log('AuthContext: Initializing/Re-rendering AuthProvider');
@@ -64,11 +67,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setAuthToken(null);
       }
     }
-    setIsLoading(false); // <--- This MUST set isLoading to false after check
+    setIsLoading(false);
   }, []);
 
   const loginUser = async (credentials: any): Promise<boolean> => {
-    setIsLoading(true); // Set loading while logging in
+    setIsLoading(true);
     try {
       const res = await login(credentials);
       const { token: receivedToken, user: userData } = res.data;
@@ -87,12 +90,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('AuthContext: Login failed:', error);
       return false;
     } finally {
-        setIsLoading(false); // Always set loading to false after login attempt
+        setIsLoading(false);
     }
   };
 
   const registerUser = async (userData: any): Promise<boolean> => {
-    setIsLoading(true); // Set loading while registering
+    setIsLoading(true);
     try {
       const res = await register(userData);
       const { token: receivedToken, user: newUser } = res.data;
@@ -111,7 +114,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('AuthContext: Registration failed:', error);
       return false;
     } finally {
-        setIsLoading(false); // Always set loading to false after registration attempt
+        setIsLoading(false);
     }
   };
 
@@ -122,19 +125,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(null);
     setIsAuthenticated(false);
     setAuthToken(null);
-    setIsLoading(false); // Set loading to false on logout completion
+    setIsLoading(false);
     navigate('/login');
     console.log('AuthContext: User logged out.');
+  };
+
+  const triggerRefresh = () => { // <--- ADD THIS FUNCTION
+    setRefreshTrigger(prev => prev + 1);
   };
 
   const authContextValue: AuthContextType = {
     user,
     token,
     isAuthenticated,
-    isLoading, // <--- This MUST be included in the returned object
+    isLoading,
     loginUser,
     registerUser,
     logout,
+    refreshTrigger,
+    triggerRefresh,
   };
 
   return (

@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';   // IMPORT SHADCN INPUT
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"; // IMPORT SHADCN CARD COMPONENTS
@@ -23,16 +22,12 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     setError('');
     const success = await loginUser({ email, password });
-    if (!success) {
-      setError('Login failed. Please check your credentials.');
-    }
   };
 
   return (
     <Card className="p-8 shadow-lg border border-border w-full max-w-md text-card-foreground"> 
       <CardHeader className="text-center pb-6">
         <CardTitle className="text-3xl font-bold text-foreground mb-2">Login</CardTitle> 
-        {error && <CardDescription className="text-destructive font-normal">{error}</CardDescription>} 
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">

@@ -3,12 +3,12 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -35,16 +35,12 @@ const RegisterPage: React.FC = () => {
     e.preventDefault();
     setError('');
     const success = await registerUser({ firstName, lastName, email, password, phone, nid, userType });
-    if (!success) {
-      setError('Registration failed. Please try again with different details.');
-    }
   };
 
   return (
     <Card className="p-8 shadow-lg border border-border w-full max-w-md text-card-foreground">
       <CardHeader className="text-center pb-6">
         <CardTitle className="text-3xl font-bold text-foreground mb-2">Register</CardTitle>
-        {error && <CardDescription className="text-destructive font-normal">{error}</CardDescription>}
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">

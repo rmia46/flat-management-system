@@ -25,13 +25,13 @@ export const register = (userData: any) => api.post('/auth/register', userData);
 export const login = (credentials: any) => api.post('/auth/login', credentials);
 
 // --- Flat API Calls ---
+export const getAllAmenities = () => api.get('/flats/amenities');
 export const getAllFlats = () => api.get('/flats');
 export const createFlat = (flatData: any) => api.post('/flats', flatData);
 export const getOwnerFlats = () => api.get('/flats/owner');
 export const getFlatById = (id: number) => api.get(`/flats/${id}`);
 export const deleteFlat = (id: number) => api.delete(`/flats/${id}`);
 export const updateFlat = (id: number, flatData: any) => api.put(`/flats/${id}`, flatData);
-export const getAllAmenities = () => api.get('/flats/amenities');
 
 // --- Booking API Calls ---
 export const createBooking = (flatId: number, bookingData: { startDate: Date; endDate: Date }) => api.post(`/flats/${flatId}/book`, bookingData);

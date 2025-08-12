@@ -5,6 +5,7 @@ import { getOwnerFlats } from '../services/api';
 import FlatList from '../components/flats/FlatList';
 import { Link } from 'react-router-dom';
 
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button'; // IMPORT SHADCN BUTTON
 import {
   Card,
@@ -18,7 +19,7 @@ const DashboardPage: React.FC = () => {
   const { user, refreshTrigger } = useAuth();
   const [ownerFlats, setOwnerFlats] = useState<any[]>([]);
   const [loadingFlats, setLoadingFlats] = useState(true);
-  const [flatsError, setFlatsError] = useState('');
+  // const [flatsError, setFlatsError] = useState('');
 
   // Use useCallback to memoize the fetch function to avoid re-creating it
   const fetchOwnerFlats = useCallback(async () => { // <-- WRAP IN useCallback
@@ -32,10 +33,10 @@ const DashboardPage: React.FC = () => {
       const response = await getOwnerFlats();
       setOwnerFlats(response.data);
       setLoadingFlats(false);
-      setFlatsError(''); // Clear error on successful fetch
+      // setFlatsError(''); // Clear error on successful fetch
     } catch (err: any) {
       console.error('Error fetching owner flats:', err);
-      setFlatsError('Failed to load your flats. Please try again.');
+      toast.error('Failed to load your flats. Please try again.'); // <--- USE SONNER
       setLoadingFlats(false);
     }
   }, [user]); // Dependency on user object
@@ -49,6 +50,9 @@ const DashboardPage: React.FC = () => {
     fetchOwnerFlats();
   }, [fetchOwnerFlats]);
 
+  if (loadingFlats) {
+    return <p className="text-muted-foreground text-xl">Loading your flats...</p>;
+  }
 
   return (
     <Card className="text-center p-8 shadow-lg border border-border w-full max-w-5xl text-card-foreground"> 
@@ -61,7 +65,7 @@ const DashboardPage: React.FC = () => {
         )}
       </CardHeader>
 
-      <CardContent>
+      {/* <CardContent>
         {user?.userType === 'owner' && (
           <>
             
@@ -101,6 +105,45 @@ const DashboardPage: React.FC = () => {
         </>
           
         )}
+        {!user && (
+             <p className="mt-4 text-muted-foreground text-base">
+               Please log in to view your dashboard.
+             </p>
+        )}
+      </CardContent> */}
+      <CardContent>
+        {user?.userType === 'owner' && (
+          <>
+            <h3 className="text-2xl font-semibold text-foreground mb-4">Your Listed Flats</h3>
+            <div className="flex justify-center items-center gap-4 mb-6">
+              <Button asChild>
+                <Link to="/flats/create">+ List New Flat</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link to="/dashboard/bookings">View Booking Requests</Link>
+              </Button>
+            </div>
+
+            {ownerFlats.length === 0 ? (
+              <p className="text-muted-foreground">You haven't listed any flats yet.</p>
+            ) : (
+              <FlatList
+                flats={ownerFlats}
+                title=""
+                emptyMessage="You haven't listed any flats yet."
+                showActions={true}
+                onFlatDeleted={handleFlatDeleted}
+              />
+            )}
+          </>
+        )}
+
+        {user?.userType === 'tenant' && (
+          <p className="mt-4 text-muted-foreground text-base">
+            Welcome to your tenant dashboard. Find your next flat through the navigation bar!
+          </p>
+        )}
+
         {!user && (
              <p className="mt-4 text-muted-foreground text-base">
                Please log in to view your dashboard.

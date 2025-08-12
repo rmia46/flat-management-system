@@ -6,7 +6,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"; // IMPORT SHADCN CARD COMPONENTS
+} from "@/components/ui/card";
 
 const HomePage: React.FC = () => {
   return (

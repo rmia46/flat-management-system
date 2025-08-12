@@ -2,6 +2,7 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { setAuthToken, login, register } from '../services/api';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 interface User {
   id: number;
@@ -59,12 +60,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('AuthContext: User and token loaded from localStorage.');
       } catch (e) {
         console.error("AuthContext: Failed to parse stored user or token:", e);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setUser(null);
-        setToken(null);
-        setIsAuthenticated(false);
-        setAuthToken(null);
+        toast.error("Your session has expired. Please log in again."); 
+        // localStorage.removeItem('token');
+        // localStorage.removeItem('user');
+        // setUser(null);
+        // setToken(null);
+        // setIsAuthenticated(false);
+        // setAuthToken(null);
+        logout();
       }
     }
     setIsLoading(false);
@@ -84,10 +87,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsAuthenticated(true);
       setAuthToken(receivedToken);
       navigate('/dashboard');
+      toast.success('Login successful!');
       console.log('AuthContext: Login successful!');
       return true;
     } catch (error) {
       console.error('AuthContext: Login failed:', error);
+      const message = (error as any).response?.data?.message || 'Login failed. Please check your credentials.';
+      toast.error(message);
       return false;
     } finally {
         setIsLoading(false);
@@ -109,9 +115,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setAuthToken(receivedToken);
       navigate('/dashboard');
       console.log('AuthContext: Registration successful!');
+      toast.success('Registration successful!');
       return true;
     } catch (error) {
       console.error('AuthContext: Registration failed:', error);
+      const message = (error as any).response?.data?.message || 'Registration failed. Please try again.';
+      toast.error(message);
       return false;
     } finally {
         setIsLoading(false);
@@ -127,7 +136,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setAuthToken(null);
     setIsLoading(false);
     navigate('/login');
-    console.log('AuthContext: User logged out.');
+    toast.info('Logged out successfully.');
   };
 
   const triggerRefresh = () => { // <--- ADD THIS FUNCTION

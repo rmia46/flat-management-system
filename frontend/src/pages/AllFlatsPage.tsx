@@ -9,12 +9,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"; // IMPORT SHADCN CARD COMPONENTS
+import { toast } from 'sonner';
 
 const AllFlatsPage: React.FC = () => {
   const [flats, setFlats] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
   useEffect(() => {
     const fetchFlats = async () => {
       try {
@@ -24,7 +23,7 @@ const AllFlatsPage: React.FC = () => {
         setLoading(false);
       } catch (err: any) {
         console.error('Error fetching all flats:', err);
-        setError('Failed to load flats. Please try again later.');
+        toast.error('Failed to load flats. Please try again later.');
         setLoading(false);
       }
     };
@@ -33,10 +32,6 @@ const AllFlatsPage: React.FC = () => {
 
   if (loading) {
     return <p className="text-muted-foreground text-xl">Loading available flats...</p>;
-  }
-
-  if (error) {
-    return <p className="text-destructive text-xl">{error}</p>;
   }
 
   return (

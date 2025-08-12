@@ -48,8 +48,6 @@ const CreateFlatPage: React.FC = () => {
   const [availableAmenities, setAvailableAmenities] = useState<Amenity[]>([]);
 
   const [loading, setLoading] = useState(false);
-  // REMOVED: const [error, setError] = useState('');
-  // REMOVED: const [successMessage, setSuccessMessage] = useState('');
   const [initialLoading, setInitialLoading] = useState(isEditMode);
 
   useEffect(() => {
@@ -204,8 +202,7 @@ const CreateFlatPage: React.FC = () => {
         <CardTitle className="text-3xl font-bold text-foreground mb-2">
           {isEditMode ? 'Edit Flat Listing' : 'List Your Flat'}
         </CardTitle>
-        {/* REMOVED: {error && <CardDescription className="text-destructive font-normal">{error}</CardDescription>} */}
-        {/* REMOVED: {successMessage && <CardDescription className="text-green-500 font-normal">{successMessage}</CardDescription>} */}
+        
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">

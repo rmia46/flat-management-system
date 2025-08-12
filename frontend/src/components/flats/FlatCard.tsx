@@ -20,11 +20,11 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"; 
 
 import { deleteFlat } from '@/services/api';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner'; 
 
 // Define a basic type for a Flat (match your Prisma schema output for frontend usage)
 interface Image {
@@ -102,16 +102,15 @@ const FlatCard: React.FC<FlatCardProps> = ({ flat, showActions = false, onFlatDe
     setIsDeleting(true);
     try {
       await deleteFlat(selectedFlatId);
-      console.log(`Flat ${selectedFlatId} deleted successfully.`);
+      // console.log(`Flat ${selectedFlatId} deleted successfully.`);
+      toast.success(`Flat ${selectedFlatId} deleted successfully.`); 
       // Call the callback to refresh the list in the parent (DashboardPage)
-      // --- ADD THIS DEBUG LOG ---
-      console.log('FlatCard: Calling onFlatDeleted callback for ID:', selectedFlatId);
       if (onFlatDeleted) {
         onFlatDeleted(selectedFlatId);
       }
     } catch (error: any) {
       console.error(`Failed to delete flat ${selectedFlatId}:`, error.response ? error.response.data : error.message);
-      alert(`Failed to delete flat: ${error.response?.data?.message || error.message}`);
+      toast.error(error.response?.data?.message || `Failed to delete flat.`); 
     } finally {
       setIsDeleting(false);
       setIsDeleteDialogOpen(false); // Close dialog regardless of success/failure

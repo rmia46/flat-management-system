@@ -7,7 +7,7 @@ import {
 } from '../services/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from 'sonner'; // <--- IMPORT SONNER TOAST
+import { toast } from 'sonner';
 
 const BookingsPage: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
@@ -52,16 +52,16 @@ const BookingsPage: React.FC = () => {
     try {
       if (action === 'approve') {
         await approveBooking(bookingId);
-        toast.success('Booking approved successfully!'); // <--- USE SONNER
+        toast.success('Booking approved successfully!'); 
       } else {
         await disapproveBooking(bookingId);
-        toast.info('Booking disapproved.'); // <--- USE SONNER
+        toast.info('Booking disapproved.'); 
       }
       fetchBookings(); // Re-fetch the list to update the UI
     } catch (err: any) {
       console.error(`Failed to ${action} booking:`, err);
       const message = err.response?.data?.message || 'Failed to perform action.';
-      toast.error(message); // <--- USE SONNER
+      toast.error(message);
     }
   };
 

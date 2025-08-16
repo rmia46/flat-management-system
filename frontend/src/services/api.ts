@@ -5,7 +5,8 @@ const API_BASE_URL = import.meta.env.PROD
   ? window.location.origin + '/api'
   : import.meta.env.VITE_API_BASE_URL;
 
-const api = axios.create({
+// <-- NEW: Export the api instance
+export const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
@@ -19,6 +20,17 @@ export const setAuthToken = (token: string | null) => {
     delete api.defaults.headers.common['Authorization'];
   }
 };
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      console.log("Interceptor: 401 Unauthorized received. Propagating error.");
+    }
+    return Promise.reject(error);
+  }
+);
+
 
 // --- Authentication API Calls ---
 export const register = (userData: any) => api.post('/auth/register', userData);

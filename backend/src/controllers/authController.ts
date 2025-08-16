@@ -50,7 +50,7 @@ export const registerUser = async (req: Request, res: Response) => {
     const token = jwt.sign(
       { id: newUser.id, userType: newUser.userType },
       process.env.JWT_SECRET as string, // Cast to string as process.env can be undefined
-      { expiresIn: '1h' } // Token expires in 1 hour
+      { expiresIn: '1h' }
     );
 
     // Send back user data (excluding passwordHash) and token
@@ -62,7 +62,7 @@ export const registerUser = async (req: Request, res: Response) => {
         firstName: newUser.firstName,
         lastName: newUser.lastName,
         email: newUser.email,
-        phone: newUser.phone, 
+        phone: newUser.phone,
         nid: newUser.nid,
         userType: newUser.userType,
         verified: newUser.verified,
@@ -103,7 +103,7 @@ export const loginUser = async (req: Request, res: Response) => {
     const token = jwt.sign(
       { id: user.id, userType: user.userType },
       process.env.JWT_SECRET as string,
-      { expiresIn: '1h' }
+      { expiresIn: '1h' } // <-- NEW: Shorten for testing
     );
 
     // Send back user data (excluding passwordHash) and token
@@ -124,3 +124,4 @@ export const loginUser = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Server error during login.' });
   }
 };
+

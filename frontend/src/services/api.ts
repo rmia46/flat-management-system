@@ -39,3 +39,4 @@ export const getOwnerBookings = () => api.get('/bookings/owner');
 export const getTenantBookings = () => api.get('/bookings/tenant');
 export const approveBooking = (bookingId: number) => api.put(`/bookings/${bookingId}/approve`);
 export const disapproveBooking = (bookingId: number) => api.put(`/bookings/${bookingId}/disapprove`);
+export const cancelBooking = (bookingId: number) => api.delete(`/bookings/${bookingId}`);

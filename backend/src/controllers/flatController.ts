@@ -539,3 +539,50 @@ export const getTenantBookings = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Server error fetching bookings.' });
   }
 };
+
+
+// --- NEW: Cancel a Booking Request (Tenant only) ---
+export const cancelBooking = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const tenantId = req.user?.id;
+
+  if (!tenantId || req.user?.userType !== 'tenant') {
+    return res.status(403).json({ message: 'Not authorized. Only tenants can cancel their own bookings.' });
+  }
+
+  try {
+    const booking = await prisma.booking.findUnique({
+      where: { id: parseInt(id) },
+      select: { userId: true, flat: { select: { id: true } }, status: true },
+    });
+
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found.' });
+    }
+
+    if (booking.userId !== tenantId) {
+      return res.status(403).json({ message: 'Not authorized to cancel this booking.' });
+    }
+
+    if (booking.status !== 'pending') {
+      return res.status(400).json({ message: 'Only pending bookings can be cancelled.' });
+    }
+    
+    // Delete the booking record
+    await prisma.booking.delete({
+      where: { id: parseInt(id) },
+    });
+
+    // Update the flat status back to 'available'
+    await prisma.flat.update({
+      where: { id: booking.flat.id },
+      data: { status: 'available' }
+    });
+
+
+    res.status(200).json({ message: 'Booking cancelled successfully.' });
+  } catch (error) {
+    console.error('Error cancelling booking:', error);
+    res.status(500).json({ message: 'Server error cancelling booking.' });
+  }
+};

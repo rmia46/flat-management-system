@@ -163,7 +163,7 @@ const DashboardPage: React.FC = () => {
                             <CardFooter>
                                 <p>
                                     <strong>Status:</strong>
-                                    <span className={`font-semibold ml-2 ${booking.status === 'approved' ? 'text-green-600' : ''}`}>
+                                    <span className={`font-semibold ml-2 ${booking.status === 'approved' ? 'text-green-600' : (booking.status === 'disapproved' || booking.status === 'cancelled' ? 'text-red-600' : '')}`}>
                                         {booking.status}
                                     </span>
                                 </p>

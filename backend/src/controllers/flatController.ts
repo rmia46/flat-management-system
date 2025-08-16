@@ -380,7 +380,7 @@ export const createBooking = async (req: Request, res: Response) => {
         // Assuming simplified payment logic for now
         payments: {
           create: {
-            amount: parseFloat(flat.monthlyRentalCost as unknown as string), // Cast to float for consistency
+            amount: parseFloat(flat.monthlyRentalCost as unknown as string),
             datePaid: new Date(),
             status: 'completed',
             paymentMethod: 'system',
@@ -567,10 +567,10 @@ export const cancelBooking = async (req: Request, res: Response) => {
     if (booking.status !== 'pending') {
       return res.status(400).json({ message: 'Only pending bookings can be cancelled.' });
     }
-    
-    // Delete the booking record
-    await prisma.booking.delete({
+
+    await prisma.booking.update({
       where: { id: parseInt(id) },
+      data: { status: 'cancelled' } // <-- NEW: Explicitly set status to 'cancelled'
     });
 
     // Update the flat status back to 'available'
@@ -578,7 +578,6 @@ export const cancelBooking = async (req: Request, res: Response) => {
       where: { id: booking.flat.id },
       data: { status: 'available' }
     });
-
 
     res.status(200).json({ message: 'Booking cancelled successfully.' });
   } catch (error) {

@@ -3,10 +3,11 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getOwnerFlats, getTenantBookings } from '../services/api';
 import FlatList from '../components/flats/FlatList';
+import FlatDetailsDialog from '../components/flats/FlatDetailsDialog';
 import { Link } from 'react-router-dom';
 
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button'; // IMPORT SHADCN BUTTON
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -14,8 +15,8 @@ import {
   CardHeader,
   CardTitle,
   CardFooter,
-} from "@/components/ui/card"; // IMPORT SHADCN CARD COMPONENTS
-import { LoadingSpinner } from '@/components/common/LoadingSpinner'; // Import the spinner component
+} from "@/components/ui/card";
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 
 const DashboardPage: React.FC = () => {
   const { user, refreshTrigger } = useAuth();
@@ -23,6 +24,9 @@ const DashboardPage: React.FC = () => {
   const [tenantBookings, setTenantBookings] = useState<any[]>([]);
   const [loadingFlats, setLoadingFlats] = useState(true);
   const [loadingBookings, setLoadingBookings] = useState(true);
+  const [selectedFlatId, setSelectedFlatId] = useState<number | null>(null);
+  const [selectedBookingId, setSelectedBookingId] = useState<number | null>(null);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
 
   const fetchOwnerFlats = useCallback(async () => {
     if (user?.userType !== 'owner') {
@@ -41,7 +45,6 @@ const DashboardPage: React.FC = () => {
     }
   }, [user]);
 
-  // NEW: Fetch bookings for a tenant
   const fetchTenantBookings = useCallback(async () => {
     if (user?.userType !== 'tenant') {
       setLoadingBookings(false);
@@ -68,6 +71,17 @@ const DashboardPage: React.FC = () => {
     fetchOwnerFlats();
   }, [fetchOwnerFlats]);
 
+  const handleCardClick = (flatId: number, bookingId: number) => {
+    setSelectedFlatId(flatId);
+    setSelectedBookingId(bookingId);
+    setIsDetailsDialogOpen(true);
+  };
+  
+  const handleDialogClose = () => {
+    setIsDetailsDialogOpen(false);
+    setSelectedFlatId(null);
+    setSelectedBookingId(null);
+  };
 
   if (loadingFlats || loadingBookings) {
     return (
@@ -78,6 +92,7 @@ const DashboardPage: React.FC = () => {
   }
 
   return (
+    <>
     <Card className="text-center p-8 shadow-lg border border-border w-full max-w-5xl text-card-foreground">
       <CardHeader>
         <CardTitle className="text-4xl font-bold mb-4 text-foreground">User Dashboard</CardTitle>
@@ -113,7 +128,6 @@ const DashboardPage: React.FC = () => {
           </>
         )}
 
-        {/* NEW: Tenant Dashboard Content */}
         {user?.userType === 'tenant' && (
           <div className="flex flex-col items-center">
             <div className="w-full flex justify-between items-center mb-6">
@@ -127,8 +141,12 @@ const DashboardPage: React.FC = () => {
                 <p className="text-muted-foreground">You haven't booked any flats yet. Find your perfect place today!</p>
             ) : (
                 <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {tenantBookings.map((booking) => (
-                        <Card key={booking.id} className="w-full text-left">
+                    {tenantBookings.map((booking: any) => (
+                        <Card 
+                            key={booking.id} 
+                            className="w-full text-left cursor-pointer hover:shadow-lg transition-shadow"
+                            onClick={() => handleCardClick(booking.flat.id, booking.id)}
+                        >
                             <CardHeader>
                                 <CardTitle>
                                     Flat at {booking.flat.address}
@@ -164,6 +182,13 @@ const DashboardPage: React.FC = () => {
         )}
       </CardContent>
     </Card>
+    <FlatDetailsDialog
+        flatId={selectedFlatId}
+        bookingId={selectedBookingId}
+        isOpen={isDetailsDialogOpen}
+        onClose={handleDialogClose}
+    />
+    </>
   );
 };
 

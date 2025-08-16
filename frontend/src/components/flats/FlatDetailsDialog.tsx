@@ -9,22 +9,23 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { getFlatById, createBooking} from '@/services/api';
+import { getFlatById, createBooking, cancelBooking, approveBooking, disapproveBooking} from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 
 // Define a more comprehensive Flat type to match backend 'select' and 'include'
 interface FlatDetails {
   id: number;
-  flatNumber?: string | null; // Sensitive, conditional
-  floor?: number | null;      // Sensitive, conditional
+  flatNumber?: string | null;
+  floor?: number | null;
   houseName?: string | null;
-  houseNumber?: string | null; // Sensitive, conditional
+  houseNumber?: string | null;
   address: string;
   latitude?: number | null;
   longitude?: number | null;
   monthlyRentalCost: number | null;
-  utilityCost?: number | null; // Sensitive, conditional
+  utilityCost?: number | null;
   bedrooms?: number | null;
   bathrooms?: number | null;
   balcony?: boolean | null;
@@ -32,16 +33,14 @@ interface FlatDetails {
   description?: string | null;
   status: string;
   rating?: number | null;
-  ownerId: number; // Important for ownership check
-
-  // Included relations - fields might be null if not selected by backend
+  ownerId: number;
   owner?: {
     id: number;
     firstName: string;
     lastName: string;
-    email?: string | null; // Nullable if not authenticated
-    phone?: string | null; // Nullable if not authenticated
-    nid?: string | null;   // Nullable if not authenticated
+    email?: string | null;
+    phone?: string | null;
+    nid?: string | null;
   };
   images?: { id: number; url: string; isThumbnail: boolean }[];
   amenities?: { amenity: { id: number; name: string; description: string | null } }[];
@@ -49,18 +48,22 @@ interface FlatDetails {
 
 interface FlatDetailsDialogProps {
   flatId: number | null;
+  bookingId?: number | null;
   isOpen: boolean;
   onClose: () => void;
 }
 
-const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, isOpen, onClose }) => {
-  const { isAuthenticated, user, isLoading } = useAuth(); // Get user info for auth check
+const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, bookingId, isOpen, onClose }) => {
+  const { isAuthenticated, user, isLoading, triggerRefresh } = useAuth();
   const [flatDetails, setFlatDetails] = useState<FlatDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [bookingDates, setBookingDates] = useState({ startDate: '', endDate: '' });
   const [bookingStatusMessage, setBookingStatusMessage] = useState('');
   const [isBookingLoading, setIsBookingLoading] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [isExtending, setIsExtending] = useState(false);
+  const [isOwnerActionLoading, setIsOwnerActionLoading] = useState(false);
 
   useEffect(() => {
     if (!flatId || !isOpen) {
@@ -86,10 +89,8 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, isOpen, o
     };
 
     fetchDetails();
-    // Re-fetch if flatId, isOpen change or if user auth status changes
   }, [flatId, isOpen, isAuthenticated, user, isLoading]);
 
-  // Handle booking event
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBookingStatusMessage('');
@@ -114,22 +115,78 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, isOpen, o
       };
       const response = await createBooking(flatId as number, bookingData);
       setBookingStatusMessage(response.data.message);
-
-      // Optionally, close the dialog on success
-      // setTimeout(() => {
-      //   onClose();
-      // }, 2000);
+      toast.success(response.data.message);
+      setTimeout(() => {
+        onClose();
+      }, 2000);
 
     } catch (err: any) {
         const errorMessage = err.response?.data?.message || 'Failed to create booking.';
         setBookingStatusMessage(errorMessage);
+        toast.error(errorMessage);
         console.error('Booking creation failed:', err);
     } finally {
         setIsBookingLoading(false);
     }
   };
+  
+  const handleCancelBooking = async () => {
+      setIsCancelling(true);
+      try {
+          if (!bookingId) return;
+          if (user?.userType === 'tenant') {
+              await cancelBooking(bookingId);
+          } else {
+              await disapproveBooking(bookingId); // For owners to cancel
+          }
+          toast.success('Booking cancelled successfully.');
+          onClose();
+          triggerRefresh();
+      } catch (err: any) {
+          const errorMessage = err.response?.data?.message || 'Failed to cancel booking.';
+          toast.error(errorMessage);
+          console.error("Cancellation failed:", err);
+      } finally {
+          setIsCancelling(false);
+      }
+  };
 
-  // Determine what to display based on authentication status and ownership
+  const handleExtendBooking = async () => {
+      setIsExtending(true);
+      try {
+          toast.info('Feature coming soon! Extending booking...');
+          onClose();
+      } catch (err) {
+          toast.error('Failed to request extension.');
+          console.error("Extension failed:", err);
+      } finally {
+          setIsExtending(false);
+      }
+  };
+  
+  const handleOwnerAction = async (action: 'approve' | 'disapprove') => {
+      setIsOwnerActionLoading(true);
+      try {
+          if (!bookingId) return;
+          if (action === 'approve') {
+              await approveBooking(bookingId);
+              toast.success('Booking approved successfully!');
+          } else {
+              await disapproveBooking(bookingId);
+              toast.info('Booking cancelled.');
+          }
+          onClose();
+          triggerRefresh();
+      } catch (err: any) {
+          const message = err.response?.data?.message || 'Failed to perform action.';
+          toast.error(message);
+          console.error(`Failed to ${action} booking:`, err);
+      } finally {
+          setIsOwnerActionLoading(false);
+      }
+  };
+
+
   const getFlatContent = () => {
     if (loading) {
       return <p className="text-muted-foreground">Loading flat details...</p>;
@@ -141,9 +198,12 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, isOpen, o
       return <p className="text-muted-foreground">Flat details not found.</p>;
     }
 
-    const showSensitiveDetails = isAuthenticated; // <--- Condition: Show if ANY user is authenticated
+    const showSensitiveDetails = isAuthenticated;
     const isOwnerOfThisFlat = user && flatDetails.ownerId === user.id && user.userType === 'owner';
     const isTenant = user && user.userType === 'tenant';
+    
+    const isBookedByTenant = isTenant && !!bookingId;
+    const isBookingRequestForOwner = isOwnerOfThisFlat && !!bookingId;
 
     return (
       <div className="space-y-4">
@@ -230,7 +290,7 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, isOpen, o
         )}
 
         {/* Booking Form (Visible to tenants if flat is available) */}
-        {isTenant && flatDetails.status === 'available' && (
+        {!isBookedByTenant && isTenant && flatDetails.status === 'available' && (
           <div className="mt-6 border-t border-border pt-4">
             <h3 className="text-xl font-bold text-foreground mb-4">Book this Flat</h3>
             <form onSubmit={handleBookingSubmit} className="space-y-4">
@@ -249,7 +309,30 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, isOpen, o
             </form>
           </div>
         )}
+        
+        {/* Buttons for a tenant's booked flat */}
+        {isBookedByTenant && (
+            <div className="mt-6 border-t border-border pt-4 flex justify-end space-x-2">
+                <Button onClick={handleExtendBooking} disabled={isExtending}>
+                    {isExtending ? 'Extending...' : 'Extend'}
+                </Button>
+                <Button variant="destructive" onClick={handleCancelBooking} disabled={isCancelling}>
+                    {isCancelling ? 'Cancelling...' : 'Cancel Booking'}
+                </Button>
+            </div>
+        )}
 
+        {/* Buttons for an owner's booking request */}
+        {isBookingRequestForOwner && (
+            <div className="mt-6 border-t border-border pt-4 flex justify-end space-x-2">
+                <Button onClick={() => handleOwnerAction('approve')} disabled={isOwnerActionLoading}>
+                    {isOwnerActionLoading ? 'Processing...' : 'Approve'}
+                </Button>
+                <Button variant="destructive" onClick={() => handleOwnerAction('disapprove')} disabled={isOwnerActionLoading}>
+                    {isOwnerActionLoading ? 'Processing...' : 'Cancel'}
+                </Button>
+            </div>
+        )}
       </div>
     );
   };

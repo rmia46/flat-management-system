@@ -43,74 +43,30 @@ const DashboardPage: React.FC = () => {
 
   useEffect(() => {
     fetchOwnerFlats(); // Call it when component mounts or user changes
-  }, [fetchOwnerFlats, refreshTrigger]); 
+  }, [fetchOwnerFlats, refreshTrigger]);
+
 
   const handleFlatDeleted = useCallback(() => { // <-- ADD THIS CALLBACK
     // After a flat is deleted, re-fetch the list of owner flats
     fetchOwnerFlats();
   }, [fetchOwnerFlats]);
 
+
   if (loadingFlats) {
     return <p className="text-muted-foreground text-xl">Loading your flats...</p>;
   }
 
+
   return (
-    <Card className="text-center p-8 shadow-lg border border-border w-full max-w-5xl text-card-foreground"> 
+    <Card className="text-center p-8 shadow-lg border border-border w-full max-w-5xl text-card-foreground">
       <CardHeader>
-        <CardTitle className="text-4xl font-bold mb-4 text-foreground">User Dashboard</CardTitle> 
+        <CardTitle className="text-4xl font-bold mb-4 text-foreground">User Dashboard</CardTitle>
         {user ? (
-          <CardDescription className="text-xl text-muted-foreground">Welcome, {user.firstName} ({user.userType})!</CardDescription> 
+          <CardDescription className="text-xl text-muted-foreground">Welcome, {user.firstName} ({user.userType})!</CardDescription>
         ) : (
           <CardDescription className="text-xl text-muted-foreground">Welcome to your personalized dashboard!</CardDescription>
         )}
       </CardHeader>
-
-      {/* <CardContent>
-        {user?.userType === 'owner' && (
-          <>
-            
-            <h3 className="text-2xl font-semibold text-foreground mb-4">Your Listed Flats</h3> 
-            <div className="flex gap-4 mb-6">
-              <Button asChild>
-                <Link to="/flats/create">+ List New Flat</Link>
-              </Button>
-              <Button asChild>
-                <Link to="/dashboard/bookings">Bookings</Link>
-              </Button>
-            </div>
-            {loadingFlats ? (
-              <p className="text-muted-foreground">Loading your flats...</p>
-            ) : flatsError ? (
-              <p className="text-destructive">{flatsError}</p> 
-            ) : (
-              <FlatList
-                flats={ownerFlats}
-                title=""
-                emptyMessage="You haven't listed any flats yet."
-                showActions={true}
-                onFlatDeleted={handleFlatDeleted}
-              />
-            )}
-          </>
-        )}
-
-        {user?.userType === 'tenant' && (
-        <>
-        <p className="mt-4 text-muted-foreground text-base">
-            Welcome to your tenant dashboard. Find your next flat through the navigation bar!
-          </p>
-        <Button asChild className="mb-6 inline-block">
-            <Link to="/dashboard/bookings">Bookings</Link>
-            </Button>
-        </>
-          
-        )}
-        {!user && (
-             <p className="mt-4 text-muted-foreground text-base">
-               Please log in to view your dashboard.
-             </p>
-        )}
-      </CardContent> */}
       <CardContent>
         {user?.userType === 'owner' && (
           <>
@@ -123,6 +79,7 @@ const DashboardPage: React.FC = () => {
                 <Link to="/dashboard/bookings">View Booking Requests</Link>
               </Button>
             </div>
+
 
             {ownerFlats.length === 0 ? (
               <p className="text-muted-foreground">You haven't listed any flats yet.</p>
@@ -138,11 +95,18 @@ const DashboardPage: React.FC = () => {
           </>
         )}
 
+
         {user?.userType === 'tenant' && (
-          <p className="mt-4 text-muted-foreground text-base">
-            Welcome to your tenant dashboard. Find your next flat through the navigation bar!
-          </p>
+          <div className="flex justify-center items-center gap-4 mt-4">
+            <p className="text-muted-foreground text-base">
+              Welcome to your tenant dashboard.
+            </p>
+            <Button asChild variant="outline">
+                <Link to="/dashboard/bookings">View My Bookings</Link>
+            </Button>
+          </div>
         )}
+
 
         {!user && (
              <p className="mt-4 text-muted-foreground text-base">
@@ -153,5 +117,6 @@ const DashboardPage: React.FC = () => {
     </Card>
   );
 };
+
 
 export default DashboardPage;

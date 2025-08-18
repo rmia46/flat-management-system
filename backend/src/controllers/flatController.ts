@@ -17,13 +17,13 @@ export const createFlat = async (req: Request, res: Response) => {
 
   const ownerId = req.user.id;
   const {
-    flatNumber, floor, houseName, houseNumber, address, latitude, longitude,
+    flatNumber, floor, houseName, houseNumber, address, district, latitude, longitude,
     monthlyRentalCost, utilityCost, bedrooms, bathrooms, minimumStay, description, status,
     amenities
   } = req.body;
 
-  if (!address || !monthlyRentalCost) {
-    return res.status(400).json({ message: 'Please provide address and monthly rental cost.' });
+  if (!address || !monthlyRentalCost || !district) {
+    return res.status(400).json({ message: 'Please provide address, district and monthly rental cost.' });
   }
 
   try {
@@ -35,6 +35,7 @@ export const createFlat = async (req: Request, res: Response) => {
         houseName,
         houseNumber,
         address,
+        district, // NEW: Add district to data object
         latitude: latitude ? parseFloat(latitude) : null,
         longitude: longitude ? parseFloat(longitude) : null,
         monthlyRentalCost: parseFloat(monthlyRentalCost),
@@ -59,16 +60,52 @@ export const createFlat = async (req: Request, res: Response) => {
   }
 };
 
-// --- Get all Flat listings (Publicly accessible for tenants/visitors) ---
+
+
+// --- Get all Flat listings with sorting (Publicly accessible) ---
 export const getAllFlats = async (req: Request, res: Response) => {
   try {
+    const { sortBy, sortOrder, amenities } = req.query;
+    let orderBy: any[] = [];
+    let where: Prisma.FlatWhereInput = { status: 'available' };
+
+    // Handle multiple sorting parameters
+    if (sortBy && Array.isArray(sortBy)) {
+        sortBy.forEach((sortKey, index) => {
+            const order = Array.isArray(sortOrder) && sortOrder[index] === 'high' ? 'desc' : 'asc';
+            orderBy.push({ [sortKey as string]: order });
+        });
+    } else if (sortBy) {
+        const order = sortOrder === 'high' ? 'desc' : 'asc';
+        orderBy.push({ [sortBy as string]: order });
+    }
+
+    // Handle filtering by amenities
+    if (amenities) {
+      const amenityIds = (Array.isArray(amenities) ? amenities : [amenities]).map(id => parseInt(id as string, 10));
+      if (amenityIds.length > 0) {
+        where = {
+          ...where,
+          amenities: {
+            some: {
+              amenityId: {
+                in: amenityIds,
+              },
+            },
+          },
+        };
+      }
+    }
+
+    // Now, fetch all flats based on the constructed `orderBy` and `where` objects
     const flats = await prisma.flat.findMany({
-      where: { status: 'available' },
+      where,
       include: {
         owner: { select: { id: true, firstName: true, lastName: true, email: true, phone: true } },
         images: { select: { id: true, url: true, isThumbnail: true } },
         amenities: { include: { amenity: true } },
       },
+      orderBy: orderBy.length > 0 ? orderBy : undefined,
     });
 
     res.status(200).json(flats);
@@ -231,7 +268,7 @@ export const updateFlat = async (req: Request, res: Response) => {
   }
 
   const {
-    flatNumber, floor, houseName, houseNumber, address, latitude, longitude,
+    flatNumber, floor, houseName, houseNumber, address, district, latitude, longitude,
     monthlyRentalCost, utilityCost, bedrooms, bathrooms,
     minimumStay, description, status,
     amenities // This should be an array of objects with { id: number }
@@ -257,6 +294,7 @@ export const updateFlat = async (req: Request, res: Response) => {
       houseName: houseName !== undefined ? houseName : undefined,
       houseNumber: houseNumber !== undefined ? houseNumber : undefined,
       address: address !== undefined ? address : undefined,
+      district: district !== undefined ? district : undefined,
       latitude: latitude !== undefined ? parseFloat(latitude) : undefined,
       longitude: longitude !== undefined ? parseFloat(longitude) : undefined,
       monthlyRentalCost: monthlyRentalCost !== undefined ? parseFloat(monthlyRentalCost) : undefined,

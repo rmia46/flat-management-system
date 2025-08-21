@@ -65,17 +65,12 @@ export const createFlat = async (req: Request, res: Response) => {
 // --- Get all Flat listings with sorting (Publicly accessible) ---
 export const getAllFlats = async (req: Request, res: Response) => {
   try {
-    const { sortBy, sortOrder, amenities } = req.query;
+    const { sortBy, sortOrder, amenities, district, minRent, maxRent } = req.query;
     let orderBy: any[] = [];
     let where: Prisma.FlatWhereInput = { status: 'available' };
 
-    // Handle multiple sorting parameters
-    if (sortBy && Array.isArray(sortBy)) {
-        sortBy.forEach((sortKey, index) => {
-            const order = Array.isArray(sortOrder) && sortOrder[index] === 'high' ? 'desc' : 'asc';
-            orderBy.push({ [sortKey as string]: order });
-        });
-    } else if (sortBy) {
+    // Handle single sorting parameter
+    if (sortBy && ['monthlyRentalCost', 'bedrooms', 'bathrooms'].includes(sortBy as string)) {
         const order = sortOrder === 'high' ? 'desc' : 'asc';
         orderBy.push({ [sortBy as string]: order });
     }
@@ -96,8 +91,29 @@ export const getAllFlats = async (req: Request, res: Response) => {
         };
       }
     }
+    
+    // NEW: Handle filtering by district
+    if (district && typeof district === 'string' && district.trim() !== '') {
+        where = {
+            ...where,
+            district: {
+                equals: district,
+                
+            }
+        };
+    }
+    
+    // NEW: Handle filtering by rent range
+    if (minRent || maxRent) {
+        where = {
+            ...where,
+            monthlyRentalCost: {
+                gte: minRent ? parseFloat(minRent as string) : undefined,
+                lte: maxRent ? parseFloat(maxRent as string) : undefined,
+            }
+        };
+    }
 
-    // Now, fetch all flats based on the constructed `orderBy` and `where` objects
     const flats = await prisma.flat.findMany({
       where,
       include: {
@@ -174,6 +190,7 @@ export const getFlatById = async (req: Request, res: Response) => {
           id: true,
           houseName: true,
           address: true,
+          district: true, 
           latitude: true,
           longitude: true,
           monthlyRentalCost: true,

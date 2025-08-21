@@ -32,6 +32,7 @@ interface Amenity {
   description: string | null;
 }
 
+
 const CreateFlatPage: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();

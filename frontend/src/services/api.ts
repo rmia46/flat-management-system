@@ -31,12 +31,21 @@ api.interceptors.response.use(
   }
 );
 
-// --- Flat API Calls (REVISED) ---
-export const getAllFlats = (sortBy?: string, sortOrder?: string, amenityIds: number[] = []) => {
+export const getAllFlats = (
+  sortBy?: string, 
+  sortOrder?: string, 
+  amenityIds: number[] = [],
+  district?: string,
+  minRent?: number,
+  maxRent?: number
+) => {
   const params = new URLSearchParams();
   
   if (sortBy) params.append('sortBy', sortBy);
   if (sortOrder) params.append('sortOrder', sortOrder);
+  if (district) params.append('district', district);
+  if (minRent) params.append('minRent', String(minRent));
+  if (maxRent) params.append('maxRent', String(maxRent));
   
   amenityIds.forEach(id => {
     params.append('amenities', String(id));

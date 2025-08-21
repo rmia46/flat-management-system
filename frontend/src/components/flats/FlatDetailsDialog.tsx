@@ -1,4 +1,5 @@
-// frontend/src/components/flats/FlatDetailsDialog.tsx
+// frontend/src/components/flats/FlatDetailsDialog.tsx (REVISED)
+
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -22,6 +23,7 @@ interface FlatDetails {
   houseName?: string | null;
   houseNumber?: string | null;
   address: string;
+  district?: string | null; // <-- NEW: Add district to the interface
   latitude?: number | null;
   longitude?: number | null;
   monthlyRentalCost: number | null;
@@ -210,6 +212,7 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, bookingId
         {/* Essential Info (always visible) */}
         <div className="grid grid-cols-2 gap-2 text-sm text-foreground">
           <p><strong>Address:</strong> {flatDetails.address}</p>
+          <p><strong>District:</strong> {flatDetails.district ?? 'N/A'}</p> {/* <-- NEW: Display district */}
           <p><strong>Rent:</strong> BDT {flatDetails.monthlyRentalCost?.toLocaleString() ?? 'N/A'}</p>
           <p><strong>Beds:</strong> {flatDetails.bedrooms ?? 'N/A'}</p>
           <p><strong>Baths:</strong> {flatDetails.bathrooms ?? 'N/A'}</p>

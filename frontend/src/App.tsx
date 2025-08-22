@@ -8,9 +8,12 @@ import DashboardPage from './pages/DashboardPage';
 import AllFlatsPage from './pages/AllFlatsPage';
 import CreateFlatPage from './pages/CreateFlatPage';
 import BookingsPage from './pages/BookingsPage';
+import VerifyEmailPage from './pages/VerifyEmailPage'; 
 
 import { useAuth } from './context/AuthContext';
 import { Button } from '@/components/ui/button';
+import { LoadingSpinner } from './components/common/LoadingSpinner';
+
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -40,10 +43,9 @@ const ListItem = React.forwardRef<
           <Link
             to={href}
             ref={ref as any}
-            // FIX HERE: Use cn utility
             className={cn(
               "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
-              className // Pass the prop className here
+              className 
             )}
             {...props}
           >
@@ -55,10 +57,9 @@ const ListItem = React.forwardRef<
         ) : (
           <a
             ref={ref}
-            // FIX HERE: Use cn utility
             className={cn(
               "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
-              className // Pass the prop className here
+              className 
             )}
             {...props}
           >
@@ -77,7 +78,7 @@ ListItem.displayName = "ListItem"
 
 // Component for the Navigation Bar
 const NavBar: React.FC = () => {
-  const { isAuthenticated, user, logout, isLoading } = useAuth(); // <--- ENSURE isLoading IS DESTRUCTURED HERE
+  const { isAuthenticated, user, logout, isLoading } = useAuth(); 
 
   return (
     <nav className="bg-card text-card-foreground shadow-sm p-4 border-b border-border">
@@ -146,7 +147,7 @@ const NavBar: React.FC = () => {
               {/* User Info Popover Trigger */}
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="ghost" className="text-muted-foreground text-sm cursor-pointer" disabled={isLoading}> {/* ENSURE disabled={isLoading} IS HERE */}
+                  <Button variant="ghost" className="text-muted-foreground text-sm cursor-pointer" disabled={isLoading}> 
                     Welcome, {user?.firstName} ({user?.userType})!
                   </Button>
                 </PopoverTrigger>
@@ -172,6 +173,8 @@ const NavBar: React.FC = () => {
                           <span>{user?.nid}</span>
                         </>
                       )}
+                      <span className="text-muted-foreground">Verified:</span> 
+                      <span>{user?.verified ? 'Yes ✅' : 'No ❌'}</span>
                     </div>
                   </div>
                 </PopoverContent>
@@ -202,29 +205,28 @@ const NavBar: React.FC = () => {
   );
 };
 
-// PrivateRoute component (no changes from previous step)
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth(); // <--- ENSURE isLoading IS DESTRUCTURED HERE
+  const { isAuthenticated, isLoading, user } = useAuth(); 
   const navigate = useNavigate();
 
   console.log('PrivateRoute: Checking isAuthenticated:', isAuthenticated, 'Loading:', isLoading);
 
   useEffect(() => {
-    if (!isAuthenticated && !isLoading) { // <--- ENSURE CONDITION USES !isLoading
-      console.log('PrivateRoute: Not authenticated and done loading, redirecting to /login');
+    if (!isLoading && (!isAuthenticated || !user?.verified)) { 
+      console.log('PrivateRoute: Not authenticated or not verified, redirecting to /login');
       navigate('/login', { replace: true });
     }
-  }, [isAuthenticated, isLoading, navigate]);
+  }, [isAuthenticated, isLoading, navigate, user?.verified]);
 
-  if (isLoading) { // <--- ENSURE isLoading CHECK IS HERE
+  if (isLoading) { 
     return (
       <div className="flex justify-center items-center h-full text-foreground">
-        Loading authentication...
+        <LoadingSpinner size={48} className="text-primary" />
       </div>
     );
   }
 
-  return isAuthenticated ? <>{children}</> : null;
+  return (isAuthenticated && user?.verified) ? <>{children}</> : null; 
 };
 
 
@@ -239,6 +241,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} /> 
           <Route path="/flats" element={<AllFlatsPage />} />
           <Route path="/flats/create" element={
             <PrivateRoute>
@@ -255,13 +258,11 @@ function App() {
               <DashboardPage />
             </PrivateRoute>
           } />
-          {/*Booking Route */}
           <Route path="/dashboard/bookings" element={
             <PrivateRoute>
               <BookingsPage />
             </PrivateRoute>
           } />
-          {/* Add placeholder routes for new menu items */}
           <Route path="/about" element={<h2 className="text-3xl font-bold text-foreground">About Us Page</h2>} />
           <Route path="/contact" element={<h2 className="text-3xl font-bold text-foreground">Contact Us Page</h2>} />
           <Route path="/services" element={<h2 className="text-3xl font-bold text-foreground">Our Services Page</h2>} />
@@ -271,7 +272,6 @@ function App() {
       <footer className="bg-card text-card-foreground p-4 text-center border-t border-border">
         <p>&copy; {new Date().getFullYear()} Flat Manager. All rights reserved.</p>
       </footer>
-      {/* The toast provider */}
       <Toaster richColors position="top-center" />
     </div>
   );

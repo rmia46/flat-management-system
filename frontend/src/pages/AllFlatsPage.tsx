@@ -137,10 +137,11 @@ const AllFlatsPage: React.FC = () => {
     });
   };
 
-  // FIX: Only show this page for tenants
-  if (user?.userType !== 'tenant' && user) {
-    return <p className="text-muted-foreground text-xl text-center">You do not have access to this page.</p>;
-  }
+  // --- REMOVED: Access restriction for non-tenant users ---
+  // if (user?.userType !== 'tenant' && user) {
+  //   return <p className="text-muted-foreground text-xl text-center">You do not have access to this page.</p>;
+  // }
+  // --- END REMOVED ---
 
 
   if (loading) {

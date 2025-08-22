@@ -31,6 +31,29 @@ api.interceptors.response.use(
   }
 );
 
+export const getAllFlats = (
+  sortBy?: string, 
+  sortOrder?: string, 
+  amenityIds: number[] = [],
+  district?: string,
+  minRent?: number,
+  maxRent?: number
+) => {
+  const params = new URLSearchParams();
+  
+  if (sortBy) params.append('sortBy', sortBy);
+  if (sortOrder) params.append('sortOrder', sortOrder);
+  if (district) params.append('district', district);
+  if (minRent) params.append('minRent', String(minRent));
+  if (maxRent) params.append('maxRent', String(maxRent));
+  
+  amenityIds.forEach(id => {
+    params.append('amenities', String(id));
+  });
+  
+  return api.get(`/flats?${params.toString()}`);
+};
+
 
 // --- Authentication API Calls ---
 export const register = (userData: any) => api.post('/auth/register', userData);
@@ -38,7 +61,6 @@ export const login = (credentials: any) => api.post('/auth/login', credentials);
 
 // --- Flat API Calls ---
 export const getAllAmenities = () => api.get('/flats/amenities');
-export const getAllFlats = () => api.get('/flats');
 export const createFlat = (flatData: any) => api.post('/flats', flatData);
 export const getOwnerFlats = () => api.get('/flats/owner');
 export const getFlatById = (id: number) => api.get(`/flats/${id}`);

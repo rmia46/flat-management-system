@@ -17,13 +17,13 @@ export const createFlat = async (req: Request, res: Response) => {
 
   const ownerId = req.user.id;
   const {
-    flatNumber, floor, houseName, houseNumber, address, latitude, longitude,
+    flatNumber, floor, houseName, houseNumber, address, district, latitude, longitude,
     monthlyRentalCost, utilityCost, bedrooms, bathrooms, minimumStay, description, status,
     amenities
   } = req.body;
 
-  if (!address || !monthlyRentalCost) {
-    return res.status(400).json({ message: 'Please provide address and monthly rental cost.' });
+  if (!address || !monthlyRentalCost || !district) {
+    return res.status(400).json({ message: 'Please provide address, district and monthly rental cost.' });
   }
 
   try {
@@ -35,6 +35,7 @@ export const createFlat = async (req: Request, res: Response) => {
         houseName,
         houseNumber,
         address,
+        district, // NEW: Add district to data object
         latitude: latitude ? parseFloat(latitude) : null,
         longitude: longitude ? parseFloat(longitude) : null,
         monthlyRentalCost: parseFloat(monthlyRentalCost),
@@ -59,16 +60,68 @@ export const createFlat = async (req: Request, res: Response) => {
   }
 };
 
-// --- Get all Flat listings (Publicly accessible for tenants/visitors) ---
+
+
+// --- Get all Flat listings with sorting (Publicly accessible) ---
 export const getAllFlats = async (req: Request, res: Response) => {
   try {
+    const { sortBy, sortOrder, amenities, district, minRent, maxRent } = req.query;
+    let orderBy: any[] = [];
+    let where: Prisma.FlatWhereInput = { status: 'available' };
+
+    // Handle single sorting parameter
+    if (sortBy && ['monthlyRentalCost', 'bedrooms', 'bathrooms'].includes(sortBy as string)) {
+        const order = sortOrder === 'high' ? 'desc' : 'asc';
+        orderBy.push({ [sortBy as string]: order });
+    }
+
+    // Handle filtering by amenities
+    if (amenities) {
+      const amenityIds = (Array.isArray(amenities) ? amenities : [amenities]).map(id => parseInt(id as string, 10));
+      if (amenityIds.length > 0) {
+        where = {
+          ...where,
+          amenities: {
+            some: {
+              amenityId: {
+                in: amenityIds,
+              },
+            },
+          },
+        };
+      }
+    }
+    
+    // NEW: Handle filtering by district
+    if (district && typeof district === 'string' && district.trim() !== '') {
+        where = {
+            ...where,
+            district: {
+                equals: district,
+                
+            }
+        };
+    }
+    
+    // NEW: Handle filtering by rent range
+    if (minRent || maxRent) {
+        where = {
+            ...where,
+            monthlyRentalCost: {
+                gte: minRent ? parseFloat(minRent as string) : undefined,
+                lte: maxRent ? parseFloat(maxRent as string) : undefined,
+            }
+        };
+    }
+
     const flats = await prisma.flat.findMany({
-      where: { status: 'available' },
+      where,
       include: {
         owner: { select: { id: true, firstName: true, lastName: true, email: true, phone: true } },
         images: { select: { id: true, url: true, isThumbnail: true } },
         amenities: { include: { amenity: true } },
       },
+      orderBy: orderBy.length > 0 ? orderBy : undefined,
     });
 
     res.status(200).json(flats);
@@ -137,6 +190,7 @@ export const getFlatById = async (req: Request, res: Response) => {
           id: true,
           houseName: true,
           address: true,
+          district: true, 
           latitude: true,
           longitude: true,
           monthlyRentalCost: true,
@@ -231,7 +285,7 @@ export const updateFlat = async (req: Request, res: Response) => {
   }
 
   const {
-    flatNumber, floor, houseName, houseNumber, address, latitude, longitude,
+    flatNumber, floor, houseName, houseNumber, address, district, latitude, longitude,
     monthlyRentalCost, utilityCost, bedrooms, bathrooms,
     minimumStay, description, status,
     amenities // This should be an array of objects with { id: number }
@@ -257,6 +311,7 @@ export const updateFlat = async (req: Request, res: Response) => {
       houseName: houseName !== undefined ? houseName : undefined,
       houseNumber: houseNumber !== undefined ? houseNumber : undefined,
       address: address !== undefined ? address : undefined,
+      district: district !== undefined ? district : undefined,
       latitude: latitude !== undefined ? parseFloat(latitude) : undefined,
       longitude: longitude !== undefined ? parseFloat(longitude) : undefined,
       monthlyRentalCost: monthlyRentalCost !== undefined ? parseFloat(monthlyRentalCost) : undefined,

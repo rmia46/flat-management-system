@@ -32,6 +32,7 @@ interface Amenity {
   description: string | null;
 }
 
+
 const CreateFlatPage: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -40,6 +41,7 @@ const CreateFlatPage: React.FC = () => {
 
   const [formData, setFormData] = useState({
     flatNumber: '', floor: '', houseName: '', houseNumber: '', address: '',
+    district: '',
     latitude: '', longitude: '', monthlyRentalCost: '', utilityCost: '',
     bedrooms: '', bathrooms: '', minimumStay: '', description: '',
     status: 'available',
@@ -82,7 +84,8 @@ const CreateFlatPage: React.FC = () => {
           setFormData({
             flatNumber: flatData.flatNumber || '', floor: flatData.floor || '',
             houseName: flatData.houseName || '', houseNumber: flatData.houseNumber || '',
-            address: flatData.address || '', latitude: flatData.latitude !== null ? String(flatData.latitude) : '',
+            address: flatData.address || '', district: flatData.district || '',
+            latitude: flatData.latitude !== null ? String(flatData.latitude) : '',
             longitude: flatData.longitude !== null ? String(flatData.longitude) : '',
             monthlyRentalCost: flatData.monthlyRentalCost !== null ? String(flatData.monthlyRentalCost) : '',
             utilityCost: flatData.utilityCost !== null ? String(flatData.utilityCost) : '',
@@ -213,6 +216,12 @@ const CreateFlatPage: React.FC = () => {
               type="text" id="address" name="address" value={formData.address} onChange={handleChange}
               required
             />
+          </div>
+
+           {/* NEW: District input field */}
+          <div>
+            <label htmlFor="district" className="block text-muted-foreground text-sm font-medium mb-1">District:</label>
+            <Input type="text" id="district" name="district" value={formData.district} onChange={handleChange} required />
           </div>
 
           {/* Latitude and Longitude - Manual Input */}

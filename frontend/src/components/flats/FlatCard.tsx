@@ -26,6 +26,7 @@ import { deleteFlat } from '@/services/api';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner'; 
 
+
 // Define a basic type for a Flat (match your Prisma schema output for frontend usage)
 interface Image {
   id: number;

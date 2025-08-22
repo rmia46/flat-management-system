@@ -42,6 +42,7 @@ model Flat {
   houseName         String?     @map("HouseName")
   houseNumber       String?     @map("HouseNumber")
   address           String      @map("Address")
+  district          String?     @map("District")
   latitude          Float?       @map("Latitude") // For Google Maps
   longitude         Float?       @map("Longitude") // For Google Maps
   rating            Decimal?    @map("Rating") @db.Decimal(3,2) // DECIMAL(3,2) in MySQL

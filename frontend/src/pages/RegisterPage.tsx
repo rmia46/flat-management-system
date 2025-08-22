@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"; 
 import { toast } from 'sonner'; 
+import { LoadingSpinner } from '@/components/common/LoadingSpinner'; // <-- NEW: Import LoadingSpinner
 
 const RegisterPage: React.FC = () => {
   const { registerUser } = useAuth();
@@ -31,11 +32,13 @@ const RegisterPage: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [nid, setNid] = useState('');
   const [userType, setUserType] = useState('tenant');
+  const [loading, setLoading] = useState(false); // <-- NEW: Add loading state
   const [error, setError] = useState(''); 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setLoading(true); // <-- NEW: Set loading to true on submit
     try {
       const result = await registerUser({ firstName, lastName, email, password, phone, nid, userType });
       
@@ -46,6 +49,8 @@ const RegisterPage: React.FC = () => {
     } catch (err: any) {
       console.error('Registration page error:', err);
       toast.error(err.message || 'Registration failed.');
+    } finally {
+      setLoading(false); // <-- NEW: Set loading to false after attempt
     }
   };
 
@@ -148,8 +153,15 @@ const RegisterPage: React.FC = () => {
             </Select>
           </div>
           <div className="flex items-center justify-between">
-            <Button type="submit" className="transition-colors duration-200 transform hover:scale-[1.02]">
-              Register
+            <Button type="submit" className="transition-colors duration-200 transform hover:scale-[1.02]" disabled={loading}> {/* NEW: Disable button while loading */}
+              {loading ? ( // <-- NEW: Conditional rendering for spinner
+                <>
+                  <LoadingSpinner className="mr-2" size={16} />
+                  Registering...
+                </>
+              ) : (
+                'Register'
+              )}
             </Button>
             <Link to="/login" className="inline-block align-baseline text-sm font-medium text-foreground hover:text-primary transition-colors duration-200">
               Already have an account? Login!

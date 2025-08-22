@@ -28,14 +28,24 @@ export const registerUser = async (req: Request, res: Response) => {
   }
 
   try {
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
+    // Check if user with this email already exists
+    const existingUserByEmail = await prisma.user.findUnique({
       where: { email },
     });
 
-    if (existingUser) {
+    if (existingUserByEmail) {
       return res.status(400).json({ message: 'User with this email already exists.' });
     }
+
+    // --- Check if user with this phone number already exists ---
+    const existingUserByPhone = await prisma.user.findUnique({
+      where: { phone },
+    });
+
+    if (existingUserByPhone) {
+      return res.status(400).json({ message: 'User with this phone number already exists.' });
+    }
+    // --- END NEW ---
 
     // Hash password
     const salt = await bcrypt.genSalt(10);
@@ -52,22 +62,21 @@ export const registerUser = async (req: Request, res: Response) => {
         nid,
         userType,
         verified: false, // Default to not verified upon registration
-        // REMOVED: verificationCode and verificationCodeExpires are no longer stored in the DB
       },
     });
 
-    // --- NEW: Generate verification code and temporary JWT ---
+    // --- Generate verification code and temporary JWT ---
     const verificationCode = generateVerificationCode();
     const verificationExpires = Date.now() + 10 * 60 * 1000; // Code expires in 10 minutes
 
     const verificationToken = jwt.sign(
       { userId: newUser.id, email: newUser.email, code: verificationCode, expires: verificationExpires },
-      process.env.JWT_SECRET as string, // Re-using JWT_SECRET for simplicity, consider a separate secret for verification tokens
-      { expiresIn: '10m' } // Token itself expires in 10 minutes
+      process.env.JWT_SECRET as string,
+      { expiresIn: '10m' }
     );
-    // --- END NEW ---
+    // --- End Generate verification code and temporary JWT ---
 
-    // --- NEW: Send verification email ---
+    // --- Send verification email ---
     const emailSubject = 'Verify Your Flat Management System Account';
     const emailText = `Your verification code is: ${verificationCode}. It will expire in 10 minutes.`;
     const emailHtml = `
@@ -81,13 +90,13 @@ export const registerUser = async (req: Request, res: Response) => {
       </div>
     `;
     await sendEmail(email, emailSubject, emailText, emailHtml);
-    // --- END NEW ---
+    // --- End Send verification email ---
 
     // Send back a temporary token for verification flow, not a full auth token
     res.status(201).json({
       message: 'User registered successfully. Please check your email for a verification code.',
-      verificationToken: verificationToken, // <-- NEW: Send temporary verification token
-      userEmail: newUser.email, // <-- NEW: Send user email for verification page
+      verificationToken: verificationToken,
+      userEmail: newUser.email,
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -115,6 +124,7 @@ export const loginUser = async (req: Request, res: Response) => {
 
     // --- Check if user is verified ---
     if (!user.verified) {
+      // Ensure the email is included in the response for the frontend to use
       return res.status(403).json({ message: 'Account not verified. Please verify your email to log in.', email: user.email });
     }
     // --- END Check ---
@@ -152,16 +162,16 @@ export const loginUser = async (req: Request, res: Response) => {
   }
 };
 
-// --- NEW: Verify Email Controller ---
+// --- Verify Email Controller ---
 export const verifyEmail = async (req: Request, res: Response) => {
-  const { email, code, verificationToken } = req.body; // <-- NEW: Expect verificationToken
+  const { email, code, verificationToken } = req.body;
 
   if (!email || !code || !verificationToken) {
     return res.status(400).json({ message: 'Email, verification code, and token are required.' });
   }
 
   try {
-    // --- NEW: Verify the temporary token ---
+    // --- Verify the temporary token ---
     const decodedToken = jwt.verify(verificationToken, process.env.JWT_SECRET as string) as VerificationTokenPayload;
 
     if (decodedToken.email !== email || decodedToken.code !== code) {
@@ -171,7 +181,7 @@ export const verifyEmail = async (req: Request, res: Response) => {
     if (decodedToken.expires < Date.now()) {
       return res.status(400).json({ message: 'Verification code has expired. Please request a new code.' });
     }
-    // --- END NEW ---
+    // --- End Verify the temporary token ---
 
     const user = await prisma.user.findUnique({
       where: { email },
@@ -211,8 +221,8 @@ export const verifyEmail = async (req: Request, res: Response) => {
     );
 
     res.status(200).json({
-      message: 'Email verified successfully!',
-      token: authToken, // <-- NEW: Send full auth token
+      message: 'Email verified successfully! You are now logged in.',
+      token: authToken,
       user: updatedUser,
     });
 
@@ -225,5 +235,63 @@ export const verifyEmail = async (req: Request, res: Response) => {
     }
     console.error('Email verification error:', error);
     res.status(500).json({ message: 'Server error during email verification.' });
+  }
+};
+
+// --- NEW: Resend Verification Code Controller ---
+export const resendVerificationCode = async (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ message: 'Email is required to resend verification code.' });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    if (user.verified) {
+      return res.status(400).json({ message: 'Account is already verified.' });
+    }
+
+    // Generate a new verification code and temporary JWT
+    const newVerificationCode = generateVerificationCode();
+    const newVerificationExpires = Date.now() + 10 * 60 * 1000; // New code expires in 10 minutes
+
+    const newVerificationToken = jwt.sign(
+      { userId: user.id, email: user.email, code: newVerificationCode, expires: newVerificationExpires },
+      process.env.JWT_SECRET as string,
+      { expiresIn: '10m' }
+    );
+
+    // Send new verification email
+    const emailSubject = 'New Verification Code for Flat Management System Account';
+    const emailText = `Your new verification code is: ${newVerificationCode}. It will expire in 10 minutes.`;
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <h2>Email Verification - New Code</h2>
+        <p>You have requested a new verification code for your Flat Management System account.</p>
+        <p>Your new verification code is: <strong>${newVerificationCode}</strong></p>
+        <p>This code will expire in 10 minutes. Please enter it on the verification page to activate your account.</p>
+        <p>If you did not request this, please ignore this email.</p>
+        <p>Best regards,<br/>The Flat Management Team</p>
+      </div>
+    `;
+    await sendEmail(email, emailSubject, emailText, emailHtml);
+
+    res.status(200).json({
+      message: 'New verification code sent successfully. Please check your email.',
+      verificationToken: newVerificationToken,
+      userEmail: user.email,
+    });
+
+  } catch (error) {
+    console.error('Error resending verification code:', error);
+    res.status(500).json({ message: 'Server error during resending verification code.' });
   }
 };

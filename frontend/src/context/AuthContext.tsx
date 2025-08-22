@@ -21,17 +21,23 @@ interface RegisterUserResponse {
   userEmail?: string;
 }
 
+interface LoginResult {
+  success: boolean;
+  needsVerification?: boolean;
+  emailForVerification?: string; // Ensure this is present
+}
+
 interface AuthContextType {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  loginUser: (credentials: any) => Promise<boolean>;
+  loginUser: (credentials: any) => Promise<LoginResult>;
   registerUser: (userData: any) => Promise<RegisterUserResponse>; 
   logout: () => void;
   refreshTrigger: number;
   triggerRefresh: () => void;
-  setAuthData: (token: string, user: User) => void; // <-- NEW: Add setAuthData to AuthContextType
+  setAuthData: (token: string, user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -92,7 +98,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [navigate]);
 
 
-  const loginUser = async (credentials: any): Promise<boolean> => {
+  const loginUser = async (credentials: any): Promise<LoginResult> => {
     setIsLoading(true);
     try {
       const res = await login(credentials);
@@ -108,12 +114,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       navigate('/dashboard');
       toast.success('Login successful!');
       console.log('AuthContext: Login successful!');
-      return true;
-    } catch (error) {
+      return { success: true };
+    } catch (error: any) {
       console.error('AuthContext: Login failed:', error);
-      const message = (error as any).response?.data?.message || 'Login failed. Please check your credentials.';
+      const message = error.response?.data?.message || 'Login failed. Please check your credentials.';
+      
+      if (error.response?.status === 403 && error.response?.data?.email) {
+        toast.error(message);
+        // Ensure emailForVerification is returned here
+        return { success: false, needsVerification: true, emailForVerification: error.response.data.email };
+      }
+
       toast.error(message);
-      return false;
+      return { success: false };
     } finally {
         setIsLoading(false);
     }
@@ -153,7 +166,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setRefreshTrigger(prev => prev + 1);
   };
 
-  // <-- NEW: setAuthData function to update state and localStorage directly
   const setAuthData = (receivedToken: string, userData: User) => {
     localStorage.setItem('token', receivedToken);
     localStorage.setItem('user', JSON.stringify(userData));
@@ -161,10 +173,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(userData);
     setIsAuthenticated(true);
     setAuthToken(receivedToken);
-    // No navigation here, VerifyEmailPage will handle it
-    toast.success('You are now logged in!'); // Optional toast
+    toast.success('You are now logged in!');
   };
-  // --- END NEW ---
 
   const authContextValue: AuthContextType = {
     user,
@@ -176,7 +186,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     refreshTrigger,
     triggerRefresh,
-    setAuthData, // <-- NEW: Add setAuthData to the context value
+    setAuthData,
   };
 
   return (

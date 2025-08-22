@@ -5,6 +5,7 @@ const API_BASE_URL = import.meta.env.PROD
   ? window.location.origin + '/api'
   : import.meta.env.VITE_API_BASE_URL;
 
+// <-- NEW: Export the api instance
 export const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -57,9 +58,8 @@ export const getAllFlats = (
 // --- Authentication API Calls ---
 export const register = (userData: any) => api.post('/auth/register', userData);
 export const login = (credentials: any) => api.post('/auth/login', credentials);
-export const verifyEmail = (email: string, code: string, verificationToken: string) => 
-  api.post('/auth/verify-email', { email, code, verificationToken }); 
-
+export const verifyEmail = (email: string, code: string, verificationToken: string) => api.post('/auth/verify-email', { email, code, verificationToken });
+export const resendVerificationCode = (email: string) => api.post('/auth/resend-verification', { email });
 
 // --- Flat API Calls ---
 export const getAllAmenities = () => api.get('/flats/amenities');

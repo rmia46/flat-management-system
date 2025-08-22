@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 
 import { Button } from '@/components/ui/button';
@@ -18,10 +19,12 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"; // IMPORT SHADCN SELECT COMPONENTS
+} from "@/components/ui/select";
+import { toast } from 'sonner';
 
 const RegisterPage: React.FC = () => {
   const { registerUser } = useAuth();
+  const navigate = useNavigate(); 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -35,6 +38,11 @@ const RegisterPage: React.FC = () => {
     e.preventDefault();
     setError('');
     const success = await registerUser({ firstName, lastName, email, password, phone, nid, userType });
+
+     if (success) {
+      toast.info('Registration successful! Please check your email for a verification code.');
+      navigate('/verify-email', { state: { email: email } }); // Pass email to verification page
+    }
   };
 
   return (

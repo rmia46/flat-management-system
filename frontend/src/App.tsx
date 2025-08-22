@@ -8,6 +8,7 @@ import DashboardPage from './pages/DashboardPage';
 import AllFlatsPage from './pages/AllFlatsPage';
 import CreateFlatPage from './pages/CreateFlatPage';
 import BookingsPage from './pages/BookingsPage';
+import VerifyEmailPage from './pages/VerifyEmailPage'; 
 
 import { useAuth } from './context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -172,6 +173,8 @@ const NavBar: React.FC = () => {
                           <span>{user?.nid}</span>
                         </>
                       )}
+                      <span className="text-muted-foreground">Verified:</span> {/* NEW: Display verification status */}
+                      <span>{user?.verified ? 'Yes ✅' : 'No ❌'}</span>
                     </div>
                   </div>
                 </PopoverContent>
@@ -204,17 +207,17 @@ const NavBar: React.FC = () => {
 
 // PrivateRoute component (no changes from previous step)
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth(); // <--- ENSURE isLoading IS DESTRUCTURED HERE
+  const { isAuthenticated, isLoading, user } = useAuth(); // <--- ENSURE isLoading IS DESTRUCTURED HERE
   const navigate = useNavigate();
 
   console.log('PrivateRoute: Checking isAuthenticated:', isAuthenticated, 'Loading:', isLoading);
 
   useEffect(() => {
-    if (!isAuthenticated && !isLoading) { // <--- ENSURE CONDITION USES !isLoading
-      console.log('PrivateRoute: Not authenticated and done loading, redirecting to /login');
+    if (!isLoading && (!isAuthenticated || !user?.verified)) { // <--- MODIFIED: Check for verification
+      console.log('PrivateRoute: Not authenticated or not verified, redirecting to /login');
       navigate('/login', { replace: true });
     }
-  }, [isAuthenticated, isLoading, navigate]);
+  }, [isAuthenticated, isLoading, navigate, user?.verified]);
 
   if (isLoading) { // <--- ENSURE isLoading CHECK IS HERE
     return (
@@ -224,7 +227,7 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     );
   }
 
-  return isAuthenticated ? <>{children}</> : null;
+  return (isAuthenticated && user?.verified) ? <>{children}</> : null; // <--- MODIFIED: Only render if verified
 };
 
 
@@ -239,6 +242,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} /> {/* <-- NEW: Add route for verification */}
           <Route path="/flats" element={<AllFlatsPage />} />
           <Route path="/flats/create" element={
             <PrivateRoute>

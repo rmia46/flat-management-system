@@ -24,6 +24,10 @@ model User {
   verified     Boolean    @default(false) @map("Verified")
   userType     String     @map("UserType") // 'tenant', 'owner', 'admin'
 
+  // --- NEW FIELDS FOR EMAIL VERIFICATION ---
+  verificationCode        String?    @map("VerificationCode")
+  verificationCodeExpires DateTime?  @map("VerificationCodeExpires")
+
   flats        Flat[]     // Relation: One User (owner) can have many Flats
   bookings     Booking[]  // Relation: One User (tenant) can have many Bookings
   reviews      Review[]   // Relation: One User can give many Reviews

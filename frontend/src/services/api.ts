@@ -57,7 +57,9 @@ export const getAllFlats = (
 // --- Authentication API Calls ---
 export const register = (userData: any) => api.post('/auth/register', userData);
 export const login = (credentials: any) => api.post('/auth/login', credentials);
-export const verifyEmail = (email: string, code: string) => api.post('/auth/verify-email', { email, code }); 
+export const verifyEmail = (email: string, code: string, verificationToken: string) => 
+  api.post('/auth/verify-email', { email, code, verificationToken }); 
+
 
 // --- Flat API Calls ---
 export const getAllAmenities = () => api.get('/flats/amenities');

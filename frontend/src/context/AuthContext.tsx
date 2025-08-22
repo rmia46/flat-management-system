@@ -1,6 +1,6 @@
 // frontend/src/context/AuthContext.tsx
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { setAuthToken, login, register, api } from '../services/api'; // <-- NEW: Import the api instance
+import { setAuthToken, login, register, api } from '../services/api'; 
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -15,16 +15,23 @@ interface User {
   nid?: string;
 }
 
+interface RegisterUserResponse {
+  success: boolean;
+  verificationToken?: string;
+  userEmail?: string;
+}
+
 interface AuthContextType {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   loginUser: (credentials: any) => Promise<boolean>;
-  registerUser: (userData: any) => Promise<boolean>;
+  registerUser: (userData: any) => Promise<RegisterUserResponse>; 
   logout: () => void;
   refreshTrigger: number;
   triggerRefresh: () => void;
+  setAuthData: (token: string, user: User) => void; // <-- NEW: Add setAuthData to AuthContextType
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -67,12 +74,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(false);
   }, []);
 
-  // <-- NEW: This is the hotfix! Set up the Axios response interceptor here.
   useEffect(() => {
     const interceptor = api.interceptors.response.use(
       (response) => response,
       (error) => {
-        // Automatically log out if a 401 Unauthorized response is received
         if (error.response?.status === 401) {
           console.log("Interceptor: 401 Unauthorized received. Logging out.");
           logout();
@@ -81,11 +86,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return Promise.reject(error);
       }
     );
-    // Clean up the interceptor when the component unmounts
     return () => {
       api.interceptors.response.eject(interceptor);
     };
-  }, [navigate]); // <-- navigate is a dependency to ensure proper routing after logout
+  }, [navigate]);
 
 
   const loginUser = async (credentials: any): Promise<boolean> => {
@@ -115,32 +119,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const registerUser = async (userData: any): Promise<boolean> => {
+  const registerUser = async (userData: any): Promise<RegisterUserResponse> => {
     setIsLoading(true);
     try {
       const res = await register(userData);
-      const { token: _receivedToken, user: _newUser } = res.data;
-
-
-      // Do NOT set token and user in local storage immediately after registration
-      // The user needs to verify their email first.
-      // localStorage.setItem('token', receivedToken);
-      // localStorage.setItem('user', JSON.stringify(newUser));
-
-      // Instead, we just acknowledge registration and prepare for verification
-      // setToken(receivedToken); // We might not need to store this token yet
-      // setUser(newUser); // We might not need to store this user yet
-      // setIsAuthenticated(true); // User is not authenticated until verified
-      // setAuthToken(receivedToken); // Token is not active until verified
+      const { verificationToken, userEmail } = res.data; 
 
       console.log('AuthContext: Registration successful, awaiting verification!');
-      // No toast.success here, as RegisterPage will handle it and redirect
-      return true; // Indicate success for the RegisterPage to redirect
+      return { success: true, verificationToken, userEmail }; 
     } catch (error) {
       console.error('AuthContext: Registration failed:', error);
       const message = (error as any).response?.data?.message || 'Registration failed. Please try again.';
       toast.error(message);
-      return false;
+      return { success: false };
     } finally {
         setIsLoading(false);
     }
@@ -162,6 +153,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setRefreshTrigger(prev => prev + 1);
   };
 
+  // <-- NEW: setAuthData function to update state and localStorage directly
+  const setAuthData = (receivedToken: string, userData: User) => {
+    localStorage.setItem('token', receivedToken);
+    localStorage.setItem('user', JSON.stringify(userData));
+    setToken(receivedToken);
+    setUser(userData);
+    setIsAuthenticated(true);
+    setAuthToken(receivedToken);
+    // No navigation here, VerifyEmailPage will handle it
+    toast.success('You are now logged in!'); // Optional toast
+  };
+  // --- END NEW ---
+
   const authContextValue: AuthContextType = {
     user,
     token,
@@ -172,6 +176,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     refreshTrigger,
     triggerRefresh,
+    setAuthData, // <-- NEW: Add setAuthData to the context value
   };
 
   return (

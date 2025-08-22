@@ -1,8 +1,7 @@
 // frontend/src/pages/RegisterPage.tsx
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Link } from 'react-router-dom';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom'; 
 
 
 import { Button } from '@/components/ui/button';
@@ -19,8 +18,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { toast } from 'sonner';
+} from "@/components/ui/select"; 
+import { toast } from 'sonner'; 
 
 const RegisterPage: React.FC = () => {
   const { registerUser } = useAuth();
@@ -32,16 +31,21 @@ const RegisterPage: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [nid, setNid] = useState('');
   const [userType, setUserType] = useState('tenant');
-  const [error, setError] = useState('');
+  const [error, setError] = useState(''); 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const success = await registerUser({ firstName, lastName, email, password, phone, nid, userType });
-
-     if (success) {
-      toast.info('Registration successful! Please check your email for a verification code.');
-      navigate('/verify-email', { state: { email: email } }); // Pass email to verification page
+    try {
+      const result = await registerUser({ firstName, lastName, email, password, phone, nid, userType });
+      
+      if (result.success) {
+        toast.info('Registration successful! Please check your email for a verification code.');
+        navigate('/verify-email', { state: { email: result.userEmail, verificationToken: result.verificationToken } }); 
+      }
+    } catch (err: any) {
+      console.error('Registration page error:', err);
+      toast.error(err.message || 'Registration failed.');
     }
   };
 
@@ -109,7 +113,7 @@ const RegisterPage: React.FC = () => {
               Phone:
             </label>
             <Input
-              type="tel" // Use type="tel" for phone numbers
+              type="tel" 
               id="phone"
               name="phone"
               value={phone}

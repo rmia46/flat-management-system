@@ -16,57 +16,48 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { toast } from 'sonner';
 
 const VerifyEmailPage: React.FC = () => {
-  const { user, isAuthenticated, loginUser } = useAuth(); // We might need loginUser if we want to log them in directly
+  const { isAuthenticated, user, setAuthData } = useAuth(); // Destructure setAuthData
   const navigate = useNavigate();
   const location = useLocation();
-  const registeredEmail = location.state?.email || user?.email; // Get email from state or current user
+  
+  const registeredEmail = location.state?.email;
+  const verificationToken = location.state?.verificationToken;
 
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    // If the user is already verified, redirect to dashboard
     if (isAuthenticated && user?.verified) {
       navigate('/dashboard', { replace: true });
     }
-    // If no email is available, redirect to register
-    if (!registeredEmail && !isAuthenticated) {
+    if (!registeredEmail || !verificationToken) {
         navigate('/register', { replace: true });
         toast.info('Please register to receive a verification code.');
     }
-  }, [isAuthenticated, user, navigate, registeredEmail]);
+  }, [isAuthenticated, user, navigate, registeredEmail, verificationToken]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage('');
     setLoading(true);
 
-    if (!registeredEmail) {
-      toast.error('No email found for verification. Please register again.');
+    if (!registeredEmail || !verificationToken) {
+      toast.error('Missing registration details. Please register again.');
       setLoading(false);
       return;
     }
 
     try {
-      const res = await verifyEmail(registeredEmail, code);
+      const res = await verifyEmail(registeredEmail, code, verificationToken);
       toast.success(res.data.message);
       setMessage(res.data.message);
 
-      // After successful verification, log the user in directly or redirect to login
-      // For simplicity, we'll just update the user in AuthContext and redirect to dashboard
-      // If the backend returns a token and updated user, we can use that.
+      // Auto-login logic: Call setAuthData from context
       if (res.data.token && res.data.user) {
-        localStorage.setItem('token', res.data.token);
-        localStorage.setItem('user', JSON.stringify(res.data.user));
-        // Force re-authentication or update context directly
-        // A simple way is to reload the window or trigger a manual login
-        // For now, let's just navigate to dashboard and AuthContext will pick up new local storage
-        navigate('/dashboard', { replace: true });
-        // You might want to call a context function here to update the user state
-        // e.g., authContext.updateUser(res.data.user);
+        setAuthData(res.data.token, res.data.user); // Call setAuthData to update context and localStorage
+        navigate('/dashboard', { replace: true }); // Navigate after state is set
       } else {
-        // If no token/user returned, redirect to login page
         navigate('/login', { replace: true });
       }
 
@@ -80,7 +71,7 @@ const VerifyEmailPage: React.FC = () => {
     }
   };
 
-  if (!registeredEmail) {
+  if (!registeredEmail || !verificationToken) {
     return (
         <Card className="p-8 shadow-lg border border-border w-full max-w-md text-card-foreground text-center">
             <CardHeader>

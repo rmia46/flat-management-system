@@ -48,7 +48,7 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <Card className="p-8 shadow-lg border border-border w-full max-w-md text-card-foreground">
+     <Card className="p-8 shadow-lg border border-border w-full max-w-md text-card-foreground">
       <CardHeader className="text-center pb-6">
         <CardTitle className="text-3xl font-bold text-foreground mb-2">Login</CardTitle>
       </CardHeader>
@@ -91,10 +91,13 @@ const LoginPage: React.FC = () => {
                 'Sign In'
               )}
             </Button>
-            <Link to="/register" className="inline-block align-baseline text-sm font-medium text-foreground hover:text-primary transition-colors duration-200">
-              Don't have an account? Register!
+            <Link to="/forgot-password" className="inline-block align-baseline text-sm font-medium text-foreground hover:text-primary transition-colors duration-200">
+              Forgot password?
             </Link>
           </div>
+          <Link to="/register" className="block text-center align-baseline text-sm font-medium text-foreground hover:text-primary transition-colors duration-200 mt-2">
+            Don't have an account? Register!
+          </Link>
         </form>
       </CardContent>
     </Card>

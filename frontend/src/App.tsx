@@ -9,6 +9,8 @@ import AllFlatsPage from './pages/AllFlatsPage';
 import CreateFlatPage from './pages/CreateFlatPage';
 import BookingsPage from './pages/BookingsPage';
 import VerifyEmailPage from './pages/VerifyEmailPage'; 
+import ForgotPasswordPage from './pages/ForgotPasswordPage'; // NEW
+import PasswordResetVerificationPage from './pages/PasswordResetVerificationPage'; // NEW
 
 import { useAuth } from './context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -241,7 +243,9 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route path="/verify-email" element={<VerifyEmailPage />} /> 
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} /> {/* NEW */}
+          <Route path="/reset-password" element={<PasswordResetVerificationPage />} /> {/* NEW */}
           <Route path="/flats" element={<AllFlatsPage />} />
           <Route path="/flats/create" element={
             <PrivateRoute>
@@ -250,7 +254,7 @@ function App() {
           } />
           <Route path="/flats/edit/:id" element={
             <PrivateRoute>
-              <CreateFlatPage /> 
+              <CreateFlatPage />
             </PrivateRoute>
           } />
           <Route path="/dashboard" element={

@@ -6,7 +6,6 @@ import dotenv from 'dotenv';
 if (process.env.NODE_ENV !== 'production' && process.env.VERCEL_ENV !== 'production') {
   dotenv.config();
 }
-
 // Create a transporter object using the default SMTP transport
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
@@ -51,3 +50,5 @@ export const sendEmail = async (to: string, subject: string, text: string, html?
 export const generateVerificationCode = (): string => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
+
+

@@ -588,7 +588,7 @@ export const approveBooking = async (req: Request, res: Response) => {
   try {
     const booking = await prisma.booking.findUnique({
       where: { id: parseInt(id) },
-      include: { flat: { select: { ownerId: true } } },
+      include: { flat: { select: { ownerId: true, id : true } } },
     });
 
     if (!booking) {
@@ -598,11 +598,22 @@ export const approveBooking = async (req: Request, res: Response) => {
     if (booking.flat.ownerId !== ownerId) {
       return res.status(403).json({ message: 'Not authorized to approve this booking.' });
     }
-
-    const updatedBooking = await prisma.booking.update({
-      where: { id: parseInt(id) },
-      data: { status: 'approved' },
-    });
+    const [updatedBooking, updatedFlat] = await prisma.$transaction([
+      // 1. Update the booking status to 'approved'
+      prisma.booking.update({
+        where: { id: parseInt(id) },
+        data: { status: 'approved' },
+      }),
+      // 2. Update the flat status to 'booked'
+      prisma.flat.update({
+        where: { id: booking.flat.id },
+        data: { status: 'booked' },
+      }),
+    ]);
+    // const updatedBooking = await prisma.booking.update({
+    //   where: { id: parseInt(id) },
+    //   data: { status: 'approved' },
+    // });
 
     res.status(200).json({ message: 'Booking approved successfully.', booking: updatedBooking });
   } catch (error) {

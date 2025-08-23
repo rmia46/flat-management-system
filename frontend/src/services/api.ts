@@ -37,9 +37,9 @@ export const verifyEmail = (email: string, code: string, verificationToken: stri
 export const resendVerificationCode = (email: string) => api.post('/auth/resend-verification', { email });
 
 // Password Reset API calls
-export const forgotPassword = (email: string) => api.post('/auth/forgot-password', { email }); // Sends a code
-export const verifyPasswordResetCode = (token: string, code: string) => api.post('/auth/verify-password-reset-code', { token, code }); // Verifies the code
-export const setNewPassword = (token: string, newPassword: string) => api.post('/auth/set-new-password', { token, newPassword }); // Sets the new password
+export const forgotPassword = (email: string) => api.post('/auth/forgot-password', { email });
+export const verifyPasswordResetCode = (token: string, code: string) => api.post('/auth/verify-password-reset-code', { token, code });
+export const setNewPassword = (token: string, newPassword: string) => api.post('/auth/set-new-password', { token, newPassword });
 
 // --- Flat API Calls ---
 export const getAllFlats = (
@@ -67,25 +67,11 @@ export const getAllFlats = (
 
 
 export const getAllAmenities = () => api.get('/flats/amenities');
-// export const createFlat = (flatData: any) => api.post('/flats', flatData);
-export const createFlat = (flatData: FormData) => {
-  return api.post('/flats', flatData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
-};
+export const createFlat = (flatData: any) => api.post('/flats', flatData);
 export const getOwnerFlats = () => api.get('/flats/owner');
 export const getFlatById = (id: number) => api.get(`/flats/${id}`);
 export const deleteFlat = (id: number) => api.delete(`/flats/${id}`);
-// export const updateFlat = (id: number, flatData: any) => api.put(`/flats/${id}`, flatData);
-export const updateFlat = (id: number, flatData: FormData) => {
-  return api.put(`/flats/${id}`, flatData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
-};
+export const updateFlat = (id: number, flatData: any) => api.put(`/flats/${id}`, flatData);
 
 // --- Booking API Calls ---
 export const createBooking = (flatId: number, bookingData: { startDate: Date; endDate: Date }) => api.post(`/flats/${flatId}/book`, bookingData);
@@ -94,3 +80,6 @@ export const getTenantBookings = () => api.get('/bookings/tenant');
 export const approveBooking = (bookingId: number) => api.put(`/bookings/${bookingId}/approve`);
 export const disapproveBooking = (bookingId: number) => api.put(`/bookings/${bookingId}/disapprove`);
 export const cancelBooking = (bookingId: number) => api.delete(`/bookings/${bookingId}`);
+
+// NEW: API call for tenant to confirm payment
+export const confirmPayment = (bookingId: number) => api.put(`/bookings/${bookingId}/confirm-payment`);

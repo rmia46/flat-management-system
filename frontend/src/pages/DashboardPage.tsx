@@ -1,4 +1,4 @@
-// frontend/src/pages/DashboardPage.tsx
+// frontend/src/pages/DashboardPage.tsx (CORRECTED)
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getOwnerFlats, getTenantBookings } from '../services/api';
@@ -70,8 +70,15 @@ const DashboardPage: React.FC = () => {
   const handleFlatDeleted = useCallback(() => {
     fetchOwnerFlats();
   }, [fetchOwnerFlats]);
+  
+  // NEW: This callback will run after an action is completed in the dialog
+  const handleActionComplete = useCallback(() => {
+    fetchOwnerFlats(); // Refresh the data to show the new status
+    handleDialogClose();
+  }, [fetchOwnerFlats]);
 
-  const handleCardClick = (flatId: number, bookingId: number) => {
+
+  const handleCardClick = (flatId: number, bookingId: number | null = null) => {
     setSelectedFlatId(flatId);
     setSelectedBookingId(bookingId);
     setIsDetailsDialogOpen(true);
@@ -82,6 +89,7 @@ const DashboardPage: React.FC = () => {
     setSelectedFlatId(null);
     setSelectedBookingId(null);
   };
+
 
   if (loadingFlats || loadingBookings) {
     return (
@@ -187,6 +195,7 @@ const DashboardPage: React.FC = () => {
         bookingId={selectedBookingId}
         isOpen={isDetailsDialogOpen}
         onClose={handleDialogClose}
+        onActionComplete={handleActionComplete} // NEW: Pass the refresh callback
     />
     </>
   );

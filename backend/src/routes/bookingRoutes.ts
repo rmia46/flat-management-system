@@ -6,7 +6,8 @@ import {
   getTenantBookings,
   approveBooking,
   disapproveBooking,
-  cancelBooking
+  cancelBooking,
+  confirmPayment, // NEW: Import the new controller function
 } from '../controllers/flatController'; // We'll keep these controller functions in flatController for now
 
 const router = Router();
@@ -23,7 +24,10 @@ router.put('/:id/approve', protect, authorize('owner'), approveBooking);
 // Disapprove a specific booking request
 router.put('/:id/disapprove', protect, authorize('owner'), disapproveBooking);
 
-// <-- NEW: Route for a tenant to cancel a booking
+// Route for a tenant to cancel a booking
 router.delete('/:id', protect, authorize('tenant'), cancelBooking);
+
+// NEW: Route for a tenant to confirm a booking after payment
+router.put('/:id/confirm-payment', protect, authorize('tenant'), confirmPayment);
 
 export default router;

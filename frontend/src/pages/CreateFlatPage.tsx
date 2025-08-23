@@ -48,7 +48,7 @@ const CreateFlatPage: React.FC = () => {
   });
   const [selectedAmenities, setSelectedAmenities] = useState<number[]>([]);
   const [availableAmenities, setAvailableAmenities] = useState<Amenity[]>([]);
-
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(isEditMode);
 
@@ -121,7 +121,11 @@ const CreateFlatPage: React.FC = () => {
         setFormData({ ...formData, [name]: value });
     }
   };
-
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setImageFile(e.target.files[0]);
+    }
+  };
   const handleAmenityChange = (amenityId: number) => {
     setSelectedAmenities(prev =>
       prev.includes(amenityId)
@@ -156,19 +160,35 @@ const CreateFlatPage: React.FC = () => {
 
     setLoading(true);
     try {
-      const dataToSend = {
-        ...formData,
-        latitude: formData.latitude ? parseFloat(formData.latitude) : null,
-        longitude: formData.longitude ? parseFloat(formData.longitude) : null,
-        monthlyRentalCost: parseFloat(formData.monthlyRentalCost),
-        utilityCost: formData.utilityCost ? parseFloat(formData.utilityCost) : null,
-        bedrooms: formData.bedrooms ? parseInt(formData.bedrooms) : null,
-        bathrooms: formData.bathrooms ? parseInt(formData.bathrooms) : null,
-        floor: formData.floor ? parseInt(formData.floor) : null,
-        minimumStay: formData.minimumStay ? parseInt(formData.minimumStay) : null,
-        amenities: selectedAmenities.map(id => ({ id })),
-      };
-
+      // const dataToSend = {
+      //   ...formData,
+      //   latitude: formData.latitude ? parseFloat(formData.latitude) : null,
+      //   longitude: formData.longitude ? parseFloat(formData.longitude) : null,
+      //   monthlyRentalCost: parseFloat(formData.monthlyRentalCost),
+      //   utilityCost: formData.utilityCost ? parseFloat(formData.utilityCost) : null,
+      //   bedrooms: formData.bedrooms ? parseInt(formData.bedrooms) : null,
+      //   bathrooms: formData.bathrooms ? parseInt(formData.bathrooms) : null,
+      //   floor: formData.floor ? parseInt(formData.floor) : null,
+      //   minimumStay: formData.minimumStay ? parseInt(formData.minimumStay) : null,
+      //   amenities: selectedAmenities.map(id => ({ id })),
+      // };
+      // --- NEW: Build FormData ---
+      const dataToSend = new FormData();
+      
+      // Append all form fields as strings
+      Object.entries(formData).forEach(([key, value]) => {
+        if (value !== null && value !== undefined) {
+          dataToSend.append(key, String(value));
+        }
+      });
+      
+      // Append amenities as a JSON string
+      dataToSend.append('amenities', JSON.stringify(selectedAmenities.map(id => ({ id }))));
+      
+      // Append the image file if it exists
+      if (imageFile) {
+        dataToSend.append('image', imageFile);
+      }
       let res;
       if (isEditMode && flatId) {
         res = await updateFlat(parseInt(flatId), dataToSend);
@@ -209,6 +229,20 @@ const CreateFlatPage: React.FC = () => {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+           {/* --- NEW: Image Upload Field --- */}
+          <div>
+            <label htmlFor="image" className="block text-muted-foreground text-sm font-medium mb-1">
+              {isEditMode ? 'Change Thumbnail Image:' : 'Thumbnail Image:'}
+            </label>
+            <Input
+              type="file"
+              id="image"
+              name="image"
+              accept="image/*"
+              onChange={handleImageChange}
+            />
+            {imageFile && <p className="text-xs mt-1 text-muted-foreground">Selected: {imageFile.name}</p>}
+          </div>
           {/* All form fields are the same as before */}
           <div>
             <label htmlFor="address" className="block text-muted-foreground text-sm font-medium mb-1">Full Address (Street, City, Area, Country):</label>

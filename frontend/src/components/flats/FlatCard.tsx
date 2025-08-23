@@ -26,6 +26,7 @@ import { deleteFlat } from '@/services/api';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner'; 
 
+import { api } from '@/services/api';
 
 // Define a basic type for a Flat (match your Prisma schema output for frontend usage)
 interface Image {
@@ -75,7 +76,7 @@ const FlatCard: React.FC<FlatCardProps> = ({ flat, showActions = false, onFlatDe
     return null;
   }
 
-  const thumbnailUrl = flat.images?.find(img => img.isThumbnail)?.url || 'https://via.placeholder.com/300x200?text=No+Image';
+
 
   const displayRent = flat.monthlyRentalCost !== null && flat.monthlyRentalCost !== undefined
     ? `BDT ${flat.monthlyRentalCost.toLocaleString()}`
@@ -117,6 +118,12 @@ const FlatCard: React.FC<FlatCardProps> = ({ flat, showActions = false, onFlatDe
       setIsDeleteDialogOpen(false); // Close dialog regardless of success/failure
     }
   };
+  // const thumbnailUrl = flat.images?.find(img => img.isThumbnail)?.url;
+  const thumbnailUrl = flat.images?.find(img => img.isThumbnail)?.url || 'https://via.placeholder.com/300x200?text=No+Image';
+  const backendBaseUrl = api.defaults.baseURL?.replace('/api', ''); // Get base URL from axios instance
+  const fullImageUrl = thumbnailUrl 
+    ? `${backendBaseUrl}${thumbnailUrl}`
+    : 'https://via.placeholder.com/300x200?text=No+Image';
 
   return (
     <>
@@ -130,7 +137,7 @@ const FlatCard: React.FC<FlatCardProps> = ({ flat, showActions = false, onFlatDe
             No Image Available
           </div>
         ) : (
-          <img src={thumbnailUrl} alt={`Flat ${flat.flatNumber || flat.id}`} className="w-full h-full object-cover" />
+          <img src={fullImageUrl} alt={`Flat ${flat.flatNumber || flat.id}`} className="w-full h-full object-cover" />
         )}
       </div>
 

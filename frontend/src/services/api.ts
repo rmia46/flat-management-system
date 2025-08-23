@@ -63,11 +63,25 @@ export const resendVerificationCode = (email: string) => api.post('/auth/resend-
 
 // --- Flat API Calls ---
 export const getAllAmenities = () => api.get('/flats/amenities');
-export const createFlat = (flatData: any) => api.post('/flats', flatData);
+// export const createFlat = (flatData: any) => api.post('/flats', flatData);
+export const createFlat = (flatData: FormData) => {
+  return api.post('/flats', flatData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
 export const getOwnerFlats = () => api.get('/flats/owner');
 export const getFlatById = (id: number) => api.get(`/flats/${id}`);
 export const deleteFlat = (id: number) => api.delete(`/flats/${id}`);
-export const updateFlat = (id: number, flatData: any) => api.put(`/flats/${id}`, flatData);
+// export const updateFlat = (id: number, flatData: any) => api.put(`/flats/${id}`, flatData);
+export const updateFlat = (id: number, flatData: FormData) => {
+  return api.put(`/flats/${id}`, flatData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
 
 // --- Booking API Calls ---
 export const createBooking = (flatId: number, bookingData: { startDate: Date; endDate: Date }) => api.post(`/flats/${flatId}/book`, bookingData);

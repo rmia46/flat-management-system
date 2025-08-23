@@ -2,6 +2,8 @@
 import { Request, Response } from 'express';
 import prisma from '../db';
 import { Prisma } from '@prisma/client';
+import fs from 'fs'; // <-- Add fs for file operations
+import path from 'path'; // <-- Add path
 
 declare module 'express' {
   interface Request {
@@ -46,10 +48,17 @@ export const createFlat = async (req: Request, res: Response) => {
         description,
         status: status || 'available',
         amenities: {
-          create: amenities ? amenities.map((amenity: { id: number }) => ({
+          create: amenities ? JSON.parse(amenities).map((amenity: { id: number }) => ({
             amenityId: amenity.id,
           })) : [],
         },
+        // --- Handle image upload ---
+        images: req.file ? {
+          create: {
+            url: `/uploads/${req.file.filename}`, // URL path to the stored image
+            isThumbnail: true,
+          },
+        } : undefined,
       },
     });
 
@@ -60,7 +69,161 @@ export const createFlat = async (req: Request, res: Response) => {
   }
 };
 
+// --- Update a Flat (Owner only) ---
+export const updateFlat = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const userId = req.user?.id;
 
+    if (!userId) {
+        return res.status(401).json({ message: 'Not authenticated.' });
+    }
+
+    const { amenities, ...updateBody } = req.body;
+
+    try {
+        const flat = await prisma.flat.findUnique({
+            where: { id: parseInt(id) },
+            include: { images: true } // Include existing images
+        });
+
+        if (!flat) {
+            return res.status(404).json({ message: 'Flat not found.' });
+        }
+        if (flat.ownerId !== userId) {
+            return res.status(403).json({ message: 'Not authorized to update this flat.' });
+        }
+
+        const updateData: Prisma.FlatUpdateInput = {
+            ...updateBody,
+            // --- Safely parse numeric fields from form data ---
+            floor: updateBody.floor ? parseInt(updateBody.floor) : undefined,
+            latitude: updateBody.latitude ? parseFloat(updateBody.latitude) : undefined,
+            longitude: updateBody.longitude ? parseFloat(updateBody.longitude) : undefined,
+            monthlyRentalCost: updateBody.monthlyRentalCost ? parseFloat(updateBody.monthlyRentalCost) : undefined,
+            utilityCost: updateBody.utilityCost ? parseFloat(updateBody.utilityCost) : undefined,
+            bedrooms: updateBody.bedrooms ? parseInt(updateBody.bedrooms) : undefined,
+            bathrooms: updateBody.bathrooms ? parseInt(updateBody.bathrooms) : undefined,
+            minimumStay: updateBody.minimumStay ? parseInt(updateBody.minimumStay) : undefined,
+        };
+
+        // Handle image update
+        if (req.file) {
+            const newImageUrl = `/uploads/${req.file.filename}`;
+
+            // Delete old image file if it exists
+            const oldThumbnail = flat.images.find(img => img.isThumbnail);
+            if (oldThumbnail) {
+                const oldImagePath = path.join(__dirname, '../../uploads', path.basename(oldThumbnail.url));
+                if (fs.existsSync(oldImagePath)) {
+                    fs.unlinkSync(oldImagePath);
+                }
+            }
+
+            // Update database record for the image
+            updateData.images = {
+                deleteMany: { isThumbnail: true }, // Delete old thumbnail record
+                create: { url: newImageUrl, isThumbnail: true } // Create new one
+            };
+        }
+
+        // Handle amenities update
+        if (amenities) {
+            await prisma.flatAmenity.deleteMany({ where: { flatId: flat.id } });
+            updateData.amenities = {
+                create: JSON.parse(amenities).map((amenity: { id: number }) => ({
+                    amenityId: amenity.id
+                }))
+            };
+        }
+
+        const updatedFlat = await prisma.flat.update({
+            where: { id: parseInt(id) },
+            data: updateData,
+        });
+
+        res.status(200).json({ message: 'Flat updated successfully.', flat: updatedFlat });
+
+    } catch (error) {
+        console.error('Error updating flat:', error);
+        res.status(500).json({ message: 'Server error during flat update.' });
+    }
+};
+// --- Update a Flat (Owner only) ---
+export const uupdateFlat = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ message: 'Not authenticated.' });
+  }
+
+  const {
+    flatNumber, floor, houseName, houseNumber, address, district, latitude, longitude,
+    monthlyRentalCost, utilityCost, bedrooms, bathrooms,
+    minimumStay, description, status,
+    amenities // This should be an array of objects with { id: number }
+  } = req.body;
+
+  try {
+    const flat = await prisma.flat.findUnique({
+      where: { id: parseInt(id) },
+      select: { id: true, ownerId: true }
+    });
+
+    if (!flat) {
+      return res.status(404).json({ message: 'Flat not found.' });
+    }
+
+    if (flat.ownerId !== userId) {
+      return res.status(403).json({ message: 'Not authorized to update this flat.' });
+    }
+
+    const updateData: Prisma.FlatUpdateInput = {
+      flatNumber: flatNumber !== undefined ? flatNumber : undefined,
+      floor: floor !== undefined ? parseInt(floor) : undefined,
+      houseName: houseName !== undefined ? houseName : undefined,
+      houseNumber: houseNumber !== undefined ? houseNumber : undefined,
+      address: address !== undefined ? address : undefined,
+      district: district !== undefined ? district : undefined,
+      latitude: latitude !== undefined ? parseFloat(latitude) : undefined,
+      longitude: longitude !== undefined ? parseFloat(longitude) : undefined,
+      monthlyRentalCost: monthlyRentalCost !== undefined ? parseFloat(monthlyRentalCost) : undefined,
+      utilityCost: utilityCost !== undefined ? parseFloat(utilityCost) : undefined,
+      bedrooms: bedrooms !== undefined ? parseInt(bedrooms) : undefined,
+      bathrooms: bathrooms !== undefined ? parseInt(bathrooms) : undefined,
+      minimumStay: minimumStay !== undefined ? parseInt(minimumStay) : undefined,
+      description: description !== undefined ? description : undefined,
+      status: status !== undefined ? status : undefined,
+    };
+
+    // --- FIX AMENITY LINKING LOGIC ---
+    if (amenities) {
+        // First, disconnect all existing amenities from the flat
+        await prisma.flatAmenity.deleteMany({
+            where: { flatId: flat.id }
+        });
+
+        // Then, connect the new set of amenities
+        updateData.amenities = {
+            create: amenities.map((amenity: { id: number }) => ({
+                amenityId: amenity.id
+            }))
+        };
+    }
+    // --- END FIX ---
+
+    const updatedFlat = await prisma.flat.update({
+      where: { id: parseInt(id) },
+      data: updateData,
+    });
+
+    res.status(200).json({ message: 'Flat updated successfully.', flat: updatedFlat });
+
+  } catch (error) {
+    console.error('Error updating flat:', error);
+    res.status(500).json({ message: 'Server error during flat update.' });
+  }
+};
 
 // --- Get all Flat listings with sorting (Publicly accessible) ---
 export const getAllFlats = async (req: Request, res: Response) => {
@@ -274,83 +437,6 @@ export const deleteFlat = async (req: Request, res: Response) => {
   }
 };
 
-
-// --- Update a Flat (Owner only) ---
-export const updateFlat = async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const userId = req.user?.id;
-
-  if (!userId) {
-    return res.status(401).json({ message: 'Not authenticated.' });
-  }
-
-  const {
-    flatNumber, floor, houseName, houseNumber, address, district, latitude, longitude,
-    monthlyRentalCost, utilityCost, bedrooms, bathrooms,
-    minimumStay, description, status,
-    amenities // This should be an array of objects with { id: number }
-  } = req.body;
-
-  try {
-    const flat = await prisma.flat.findUnique({
-      where: { id: parseInt(id) },
-      select: { id: true, ownerId: true }
-    });
-
-    if (!flat) {
-      return res.status(404).json({ message: 'Flat not found.' });
-    }
-
-    if (flat.ownerId !== userId) {
-      return res.status(403).json({ message: 'Not authorized to update this flat.' });
-    }
-
-    const updateData: Prisma.FlatUpdateInput = {
-      flatNumber: flatNumber !== undefined ? flatNumber : undefined,
-      floor: floor !== undefined ? parseInt(floor) : undefined,
-      houseName: houseName !== undefined ? houseName : undefined,
-      houseNumber: houseNumber !== undefined ? houseNumber : undefined,
-      address: address !== undefined ? address : undefined,
-      district: district !== undefined ? district : undefined,
-      latitude: latitude !== undefined ? parseFloat(latitude) : undefined,
-      longitude: longitude !== undefined ? parseFloat(longitude) : undefined,
-      monthlyRentalCost: monthlyRentalCost !== undefined ? parseFloat(monthlyRentalCost) : undefined,
-      utilityCost: utilityCost !== undefined ? parseFloat(utilityCost) : undefined,
-      bedrooms: bedrooms !== undefined ? parseInt(bedrooms) : undefined,
-      bathrooms: bathrooms !== undefined ? parseInt(bathrooms) : undefined,
-      minimumStay: minimumStay !== undefined ? parseInt(minimumStay) : undefined,
-      description: description !== undefined ? description : undefined,
-      status: status !== undefined ? status : undefined,
-    };
-
-    // --- FIX AMENITY LINKING LOGIC ---
-    if (amenities) {
-        // First, disconnect all existing amenities from the flat
-        await prisma.flatAmenity.deleteMany({
-            where: { flatId: flat.id }
-        });
-
-        // Then, connect the new set of amenities
-        updateData.amenities = {
-            create: amenities.map((amenity: { id: number }) => ({
-                amenityId: amenity.id
-            }))
-        };
-    }
-    // --- END FIX ---
-
-    const updatedFlat = await prisma.flat.update({
-      where: { id: parseInt(id) },
-      data: updateData,
-    });
-
-    res.status(200).json({ message: 'Flat updated successfully.', flat: updatedFlat });
-
-  } catch (error) {
-    console.error('Error updating flat:', error);
-    res.status(500).json({ message: 'Server error during flat update.' });
-  }
-};
 
 // --- Get All Amenities ---
 export const getAllAmenities = async (req: Request, res: Response) => {

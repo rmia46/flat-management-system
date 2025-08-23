@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { api } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { getFlatById, createBooking, cancelBooking, approveBooking, disapproveBooking} from '@/services/api';
@@ -199,7 +200,7 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, bookingId
     if (!flatDetails) {
       return <p className="text-muted-foreground">Flat details not found.</p>;
     }
-
+    const backendBaseUrl = api.defaults.baseURL?.replace('/api', '');
     const showSensitiveDetails = isAuthenticated;
     const isOwnerOfThisFlat = user && flatDetails.ownerId === user.id && user.userType === 'owner';
     const isTenant = user && user.userType === 'tenant';
@@ -233,9 +234,19 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, bookingId
           <div>
             <h4 className="text-lg font-semibold text-foreground mt-4 mb-2">Images:</h4>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {flatDetails.images.map((img, index) => (
-                <img key={img.id} src={img.url} alt={`Flat image ${index + 1}`} className="w-full h-24 object-cover rounded-md" />
-              ))}
+              {flatDetails.images.map((img, index) => {
+                // 2. Construct the full URL for the image
+                const fullImageUrl = img.url ? `${backendBaseUrl}${img.url}` : '';
+                
+                return (
+                  <img 
+                    key={img.id} 
+                    src={fullImageUrl} 
+                    alt={`Flat image ${index + 1}`} 
+                    className="w-full h-24 object-cover rounded-md" 
+                  />
+                );
+              })}
             </div>
           </div>
         )}

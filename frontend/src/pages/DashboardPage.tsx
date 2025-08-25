@@ -1,7 +1,7 @@
 // frontend/src/pages/DashboardPage.tsx
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getOwnerFlats, getTenantBookings } from '../services/api';
+import { getOwnerFlats, getTenantBookings, getOwnerBookings } from '../services/api'; // MODIFIED: Added getOwnerBookings
 import FlatList from '../components/flats/FlatList';
 import FlatDetailsDialog from '../components/flats/FlatDetailsDialog';
 import { Link } from 'react-router-dom';
@@ -15,12 +15,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
-import { Home, Bookmark, Building2, BellRing } from 'lucide-react'; // NEW: Import icons
+import { Home, Bookmark, Building2, BellRing } from 'lucide-react';
 
 const DashboardPage: React.FC = () => {
   const { user, triggerRefresh, triggerRefresh: refreshTrigger } = useAuth();
   const [ownerFlats, setOwnerFlats] = useState<any[]>([]);
   const [tenantBookings, setTenantBookings] = useState<any[]>([]);
+  const [ownerBookings, setOwnerBookings] = useState<any[]>([]); // NEW: State for owner's bookings
   const [loading, setLoading] = useState(true);
   const [selectedFlatId, setSelectedFlatId] = useState<number | null>(null);
   const [selectedBookingId, setSelectedBookingId] = useState<number | null>(null);
@@ -31,8 +32,13 @@ const DashboardPage: React.FC = () => {
     setLoading(true);
     try {
       if (user.userType === 'owner') {
-        const res = await getOwnerFlats();
-        setOwnerFlats(res.data);
+        // MODIFIED: Fetch both flats and bookings at the same time
+        const [flatsRes, bookingsRes] = await Promise.all([
+          getOwnerFlats(),
+          getOwnerBookings()
+        ]);
+        setOwnerFlats(flatsRes.data);
+        setOwnerBookings(bookingsRes.data);
       } else if (user.userType === 'tenant') {
         const res = await getTenantBookings();
         setTenantBookings(res.data);
@@ -48,15 +54,14 @@ const DashboardPage: React.FC = () => {
     fetchData();
   }, [fetchData, refreshTrigger]);
 
-  // --- NEW: Calculate stats from the fetched data ---
   const ownerStats = useMemo(() => {
     if (user?.userType !== 'owner') return null;
     const totalListings = ownerFlats.length;
     const occupiedFlats = ownerFlats.filter(flat => flat.status === 'booked').length;
-    // This is a placeholder; a real implementation would fetch pending bookings separately
-    const newRequests = ownerFlats.reduce((acc, flat) => acc + (flat.bookings?.filter((b: any) => b.status === 'pending').length || 0), 0);
+    // FIXED: Calculate new requests from the separate ownerBookings state
+    const newRequests = ownerBookings.filter(b => b.status === 'pending').length;
     return { totalListings, occupiedFlats, newRequests };
-  }, [ownerFlats, user]);
+  }, [ownerFlats, ownerBookings, user]); // MODIFIED: Added ownerBookings dependency
 
   const tenantStats = useMemo(() => {
     if (user?.userType !== 'tenant') return null;
@@ -86,7 +91,6 @@ const DashboardPage: React.FC = () => {
   return (
     <>
       <div className="w-full max-w-7xl mx-auto space-y-6">
-        {/* --- NEW: Welcome Header --- */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Welcome Back, {user?.firstName}!</h1>
@@ -99,7 +103,6 @@ const DashboardPage: React.FC = () => {
           )}
         </div>
 
-        {/* --- NEW: Stat Cards --- */}
         {user?.userType === 'owner' && ownerStats && (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <StatCard icon={Building2} title="Total Listings" value={ownerStats.totalListings} />
@@ -114,7 +117,6 @@ const DashboardPage: React.FC = () => {
           </div>
         )}
 
-        {/* --- Main Content Area --- */}
         <Card>
           <CardHeader>
             <CardTitle>{user?.userType === 'owner' ? 'Your Listed Flats' : 'Your Booked Flats'}</CardTitle>
@@ -155,7 +157,6 @@ const DashboardPage: React.FC = () => {
   );
 };
 
-// --- NEW: Reusable Stat Card Component ---
 interface StatCardProps {
   title: string;
   value: number | string;
@@ -166,7 +167,7 @@ interface StatCardProps {
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, description, link }) => {
   const cardContent = (
-    <CardContent className="flex flex-row items-center justify-between space-y-0 pb-2">
+    <CardContent className="flex flex-row items-center justify-between space-y-0 pb-2 pt-6">
       <div className="space-y-1">
         <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
         <p className="text-2xl font-bold">{value}</p>
@@ -178,7 +179,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, descripti
 
   return (
     <Card>
-      {link ? <Link to={link} className="block hover:bg-muted/50">{cardContent}</Link> : cardContent}
+      {link ? <Link to={link} className="block hover:bg-muted/50 rounded-lg">{cardContent}</Link> : <div className="p-0">{cardContent}</div>}
     </Card>
   );
 };

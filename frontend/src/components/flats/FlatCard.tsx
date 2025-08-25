@@ -4,13 +4,10 @@ import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
-  CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import FlatDetailsDialog from './FlatDetailsDialog';
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,189 +16,179 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"; 
-
+  AlertDialogTitle as AlertDialogHeaderTitle,
+} from "@/components/ui/alert-dialog";
 import { deleteFlat } from '@/services/api';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner'; 
-
+import { toast } from 'sonner';
 import { api } from '@/services/api';
+import { Heart, BedDouble, Bath } from 'lucide-react';
+import { motion } from 'framer-motion'; // Keep animation import
 
-// Define a basic type for a Flat (match your Prisma schema output for frontend usage)
+// Interfaces
 interface Image {
   id: number;
   url: string;
   isThumbnail: boolean;
 }
-
-interface AmenityItem {
-  amenity: {
-    name: string;
-  };
-}
-
 interface Flat {
   id: number;
-  flatNumber: string | null;
-  floor: number | null;
-  houseName: string | null;
   address: string;
-  monthlyRentalCost: number | null; // Allow null for safety
+  district: string | null;
+  monthlyRentalCost: number | null;
   bedrooms: number | null;
   bathrooms: number | null;
-  description: string | null;
-  status: string;
-  rating: number | null; // Or Decimal type if you handle it specifically
-
-  images?: Image[]; // Make optional, can be undefined if not included or no images
-  amenities?: AmenityItem[]; // Make optional
+  images?: Image[];
+  [key: string]: any;
 }
-
 interface FlatCardProps {
-  flat: Flat; // Flat is now expected to be of type Flat
-  showActions?: boolean; // e.g., for owner's dashboard
+  flat: Flat;
+  showActions?: boolean;
   onFlatDeleted?: (flatId: number) => void;
 }
 
-const FlatCard: React.FC<FlatCardProps> = ({ flat, showActions = false, onFlatDeleted}) => {
+// Animation variants for the card
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+};
+
+const FlatCard: React.FC<FlatCardProps> = ({ flat, showActions = false, onFlatDeleted }) => {
   const navigate = useNavigate();
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
-  const [selectedFlatId, setSelectedFlatId] = useState<number | null>(null); 
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false); 
-  const [isDeleting, setIsDeleting] = useState(false); 
+  const [selectedFlatId, setSelectedFlatId] = useState<number | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  if (!flat) {
-    console.warn("FlatCard received an undefined or null flat prop.");
-    return null;
-  }
-
-
+  if (!flat) return null;
 
   const displayRent = flat.monthlyRentalCost !== null && flat.monthlyRentalCost !== undefined
-    ? `BDT ${flat.monthlyRentalCost.toLocaleString()}`
+    ? `BDT ${Math.round(flat.monthlyRentalCost).toLocaleString()}`
     : 'N/A';
 
+  const thumbnailUrl = flat.images?.find(img => img.isThumbnail)?.url || 'https://via.placeholder.com/400x300?text=No+Image';
+  const backendBaseUrl = api.defaults.baseURL?.replace('/api', '');
+  const fullImageUrl = thumbnailUrl.startsWith('http') ? thumbnailUrl : `${backendBaseUrl}${thumbnailUrl}`;
 
-  const handleCardClick = () => { 
+  const handleCardClick = () => {
     setSelectedFlatId(flat.id);
     setIsDetailsDialogOpen(true);
   };
 
-  const handleEditClick = (e: React.MouseEvent) => { 
-    e.stopPropagation(); // Prevent card click
-    navigate(`/flats/edit/${flat.id}`); // Redirect to edit page
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toast.info("Favorite feature coming soon!");
   };
 
-  const handleDeleteClick = (e: React.MouseEvent) => { 
-    e.stopPropagation(); // Prevent card click from opening details dialog
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/flats/edit/${flat.id}`);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setSelectedFlatId(flat.id);
     setIsDeleteDialogOpen(true);
   };
-  const confirmDelete = async () => { 
-    if (!selectedFlatId) return;
 
+  const confirmDelete = async () => {
+    if (!selectedFlatId) return;
     setIsDeleting(true);
     try {
       await deleteFlat(selectedFlatId);
-      // console.log(`Flat ${selectedFlatId} deleted successfully.`);
-      toast.success(`Flat ${selectedFlatId} deleted successfully.`); 
-      // Call the callback to refresh the list in the parent (DashboardPage)
-      if (onFlatDeleted) {
-        onFlatDeleted(selectedFlatId);
-      }
+      toast.success(`Flat deleted successfully.`);
+      if (onFlatDeleted) onFlatDeleted(selectedFlatId);
     } catch (error: any) {
-      console.error(`Failed to delete flat ${selectedFlatId}:`, error.response ? error.response.data : error.message);
-      toast.error(error.response?.data?.message || `Failed to delete flat.`); 
+      toast.error(error.response?.data?.message || `Failed to delete flat.`);
     } finally {
       setIsDeleting(false);
-      setIsDeleteDialogOpen(false); // Close dialog regardless of success/failure
+      setIsDeleteDialogOpen(false);
     }
   };
-  // const thumbnailUrl = flat.images?.find(img => img.isThumbnail)?.url;
-  const thumbnailUrl = flat.images?.find(img => img.isThumbnail)?.url || 'https://via.placeholder.com/300x200?text=No+Image';
-  const backendBaseUrl = api.defaults.baseURL?.replace('/api', ''); // Get base URL from axios instance
-  const fullImageUrl = thumbnailUrl 
-    ? `${backendBaseUrl}${thumbnailUrl}`
-    : 'https://via.placeholder.com/300x200?text=No+Image';
 
   return (
     <>
-    <Card 
-      className="rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02] flex flex-col overflow-hidden"
-      onClick={handleCardClick}
-    > 
-      <div className="w-full h-48 bg-muted overflow-hidden flex items-center justify-center"> 
-        {thumbnailUrl === 'https://via.placeholder.com/300x200?text=No+Image' ? (
-          <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground text-lg">
-            No Image Available
-          </div>
-        ) : (
-          <img src={fullImageUrl} alt={`Flat ${flat.flatNumber || flat.id}`} className="w-full h-full object-cover" />
-        )}
-      </div>
-
-      <CardHeader className="p-5 pb-0"> 
-        <CardTitle className="text-xl font-semibold text-foreground mb-1">
-          Flat {flat.houseName ? `in ${flat.houseName}` : ''}
-        </CardTitle>
-        <CardDescription className="text-muted-foreground text-sm">{flat.address}</CardDescription>
-      </CardHeader>
-
-      <CardContent className="p-5 pt-3 flex-grow"> 
-        <div className="grid grid-cols-2 gap-2 text-muted-foreground text-sm mb-4">
-          <p><strong>Rent:</strong> {displayRent}</p>
-          <p><strong>Beds:</strong> {flat.bedrooms ?? 'N/A'}</p>
-          <p><strong>Baths:</strong> {flat.bathrooms ?? 'N/A'}</p>
-          <p><strong>Status:</strong> <span className={`font-medium ${flat.status === 'available' ? 'text-green-600' : 'text-destructive'}`}> {flat.status} </span></p>
-          {flat.rating !== null && flat.rating !== undefined && <p><strong>Rating:</strong> {flat.rating.toFixed(1)}/5</p>}
-        </div>
-
-        {flat.description && (
-          <p className="text-foreground text-base line-clamp-3 mb-4">{flat.description}</p>
-        )}
-
-        {/* Amenities */}
-        {flat.amenities && flat.amenities.length > 0 && ( // Check if amenities array exists and has length
-          <div className="mt-auto"> 
-            <h4 className="text-sm font-semibold text-foreground mb-2">Amenities:</h4>
-            <div className="flex flex-wrap gap-2">
-              {flat.amenities.slice(0, 3).map((a, index) => (
-                <span key={index} className="bg-secondary text-secondary-foreground py-1 px-3 rounded-full text-xs font-medium">
-                  {a.amenity.name}
-                </span>
-              ))}
-              {flat.amenities.length > 3 && (
-                <span className="bg-muted text-muted-foreground py-1 px-3 rounded-full text-xs font-medium">
-                  +{flat.amenities.length - 3} more
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-      </CardContent>
-      {showActions && (
-          <CardFooter className="p-5 pt-0 flex justify-end space-x-2">
-            <Button variant="secondary" onClick={handleEditClick}>Edit</Button> 
-            <Button variant="destructive" onClick={handleDeleteClick} disabled={isDeleting}>
-              {isDeleting ? 'Deleting...' : 'Delete'}
+      <motion.div variants={cardVariants}>
+        <Card
+          className="w-full h-full flex flex-col overflow-hidden rounded-lg border shadow-sm transition-all duration-300 hover:shadow-md cursor-pointer group p-0"
+          onClick={handleCardClick}
+        >
+          {/* Image Section */}
+          <div className="relative">
+            <img
+              src={fullImageUrl}
+              alt={`Thumbnail for flat in ${flat.district}`}
+              className="w-full object-cover aspect-square transition-transform duration-300 group-hover:scale-105"
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-2 right-2 z-10 h-8 w-8 rounded-full bg-white/80 backdrop-blur-sm text-muted-foreground hover:bg-white hover:text-destructive"
+              onClick={handleFavoriteClick}
+            >
+              <Heart size={16} />
             </Button>
-          </CardFooter>
-       )}
-    </Card>
-    <FlatDetailsDialog
+          </div>
+
+          {/* Content Section */}
+          <CardContent className="p-4 space-y-3 flex-grow flex flex-col">
+            <CardTitle className="text-lg font-medium truncate">
+              Flat in {flat.district || 'N/A'}
+            </CardTitle>
+
+            <div className="space-y-2 flex-grow">
+              <div className="flex justify-between items-start">
+                <h3 className="text-xl font-bold text-foreground">{displayRent}<span className="text-sm font-normal text-muted-foreground">/month</span></h3>
+                <div className="flex items-center space-x-3 text-muted-foreground pt-1">
+                  <span className="flex items-center text-sm">                  
+                    <BedDouble className="mr-1.5 text-primary" size={16} /> {flat.bedrooms ?? 'N/A'}
+                  </span>
+                  <span className="flex items-center text-sm">
+                    <Bath className="mr-1.5 text-primary" size={16} /> {flat.bathrooms ?? 'N/A'}
+                  </span>
+                </div>
+              </div>
+              <p className="text-muted-foreground text-sm truncate">{flat.address}</p>
+            </div>
+          </CardContent>
+
+          {/* Actions for Owners */}
+          {showActions && (
+            <CardFooter className="p-4 pt-0">
+              <div className="w-full flex justify-end space-x-2">
+                <Button
+                  variant="secondary"
+                  className="transition-colors duration-200 border-2 border-transparent hover:bg-transparent hover:border-primary hover:text-primary"
+                  onClick={handleEditClick}
+                >
+                  Edit
+                </Button>
+
+                <Button
+                  variant="outline"
+                  className="text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
+                  onClick={handleDeleteClick}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </Button>
+              </div>
+            </CardFooter>
+          )}
+        </Card>
+      </motion.div>
+
+      <FlatDetailsDialog
         flatId={selectedFlatId}
         isOpen={isDetailsDialogOpen}
         onClose={() => setIsDetailsDialogOpen(false)}
-    />
-    {/* Delete Confirmation Dialog */}
+      />
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogHeaderTitle>Are you absolutely sure?</AlertDialogHeaderTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete your flat
-              listing and remove its data from our servers.
+              This will permanently delete your flat listing.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -1,28 +1,28 @@
-// frontend/src/pages/BookingsPage.tsx (CORRECTED)
-import React, { useState, useEffect, useCallback } from 'react';
+// frontend/src/pages/BookingsPage.tsx
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
-  getOwnerBookings, getTenantBookings
+  getOwnerBookings, getTenantBookings, approveBooking, disapproveBooking
 } from '../services/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import FlatDetailsDialog from '../components/flats/FlatDetailsDialog';
+import FlatDetailsDialog from '../components/flats/FlatDetailsDialog'; // <-- NEW: Import dialog
 
 const BookingsPage: React.FC = () => {
-  const { isAuthenticated, user, refreshTrigger } = useAuth();
+  const { isAuthenticated, user, triggerRefresh } = useAuth();
   const navigate = useNavigate();
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [selectedFlatId, setSelectedFlatId] = useState<number | null>(null);
-  const [selectedBookingId, setSelectedBookingId] = useState<number | null>(null);
-  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [selectedFlatId, setSelectedFlatId] = useState<number | null>(null); // <-- NEW: State for selected flat ID
+  const [selectedBookingId, setSelectedBookingId] = useState<number | null>(null); // <-- NEW: State for selected booking ID
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false); // <-- NEW: State for dialog visibility
 
-  const fetchBookings = useCallback(async () => {
+
+  const fetchBookings = async () => {
     if (!isAuthenticated || !user) {
-      setLoading(false);
       return;
     }
 
@@ -43,8 +43,7 @@ const BookingsPage: React.FC = () => {
       setError('Failed to load your bookings.');
       setLoading(false);
     }
-  }, [isAuthenticated, user]);
-
+  };
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -52,8 +51,11 @@ const BookingsPage: React.FC = () => {
     } else {
       fetchBookings();
     }
-  }, [isAuthenticated, navigate, user, refreshTrigger, fetchBookings]);
+  }, [isAuthenticated, navigate, user, triggerRefresh]);
 
+  // <-- REMOVED: handleOwnerAction and handleTenantCancel functions are moved to FlatDetailsDialog
+
+  // <-- NEW: Handle card click to open flat details dialog with both IDs
   const handleCardClick = (flatId: number, bookingId: number) => {
     setSelectedFlatId(flatId);
     setSelectedBookingId(bookingId);
@@ -65,12 +67,6 @@ const BookingsPage: React.FC = () => {
     setSelectedFlatId(null);
     setSelectedBookingId(null);
   };
-  
-  // NEW: Callback to refresh bookings after an action
-  const handleActionComplete = useCallback(() => {
-    fetchBookings();
-    handleDialogClose();
-  }, [fetchBookings]);
 
   if (loading) {
     return <p className="text-muted-foreground text-xl text-center">Loading booking requests...</p>;
@@ -92,8 +88,8 @@ const BookingsPage: React.FC = () => {
         {bookings.map((booking) => (
           <Card
             key={booking.id}
-            className="w-full text-left cursor-pointer hover:shadow-lg transition-shadow flex flex-col"
-            onClick={() => handleCardClick(booking.flat.id, booking.id)}
+            className="w-full text-left cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={() => handleCardClick(booking.flat.id, booking.id)} // <-- NEW: Call handler on click
           >
             <CardHeader>
               <CardTitle>
@@ -105,7 +101,7 @@ const BookingsPage: React.FC = () => {
                 From: {new Date(booking.startDate).toDateString()} to {new Date(booking.endDate).toDateString()}
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-2 flex-grow">
+            <CardContent className="space-y-2">
               <p>
                 <strong>Status:</strong>
                 <span className={`font-semibold ml-2 ${booking.status === 'approved' ? 'text-green-600' : (booking.status === 'disapproved' || booking.status === 'cancelled' ? 'text-red-600' : '')}`}>
@@ -118,16 +114,16 @@ const BookingsPage: React.FC = () => {
                 <p><strong>Owner:</strong> {booking.flat.owner.firstName} {booking.flat.owner.lastName}</p>
               )}
             </CardContent>
-            {/* Action buttons are now handled by the dialog on click */}
+            {/* <-- REMOVED: Buttons are now in the dialog */}
           </Card>
         ))}
       </div>
+      {/* <-- NEW: Render the FlatDetailsDialog */}
       <FlatDetailsDialog
         flatId={selectedFlatId}
         bookingId={selectedBookingId}
         isOpen={isDetailsDialogOpen}
         onClose={handleDialogClose}
-        onActionComplete={handleActionComplete} // NEW: Pass the refresh callback
       />
     </div>
   );

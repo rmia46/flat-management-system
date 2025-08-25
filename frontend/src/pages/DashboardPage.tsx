@@ -1,4 +1,4 @@
-// frontend/src/pages/DashboardPage.tsx (CORRECTED)
+// frontend/src/pages/DashboardPage.tsx
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getOwnerFlats, getTenantBookings } from '../services/api';
@@ -19,7 +19,9 @@ import {
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 
 const DashboardPage: React.FC = () => {
-  const { user, refreshTrigger } = useAuth();
+  
+  // const { user, refreshTrigger } = useAuth();
+  const { user, refreshTrigger, triggerRefresh } = useAuth(); 
   const [ownerFlats, setOwnerFlats] = useState<any[]>([]);
   const [tenantBookings, setTenantBookings] = useState<any[]>([]);
   const [loadingFlats, setLoadingFlats] = useState(true);
@@ -70,15 +72,8 @@ const DashboardPage: React.FC = () => {
   const handleFlatDeleted = useCallback(() => {
     fetchOwnerFlats();
   }, [fetchOwnerFlats]);
-  
-  // NEW: This callback will run after an action is completed in the dialog
-  const handleActionComplete = useCallback(() => {
-    fetchOwnerFlats(); // Refresh the data to show the new status
-    handleDialogClose();
-  }, [fetchOwnerFlats]);
 
-
-  const handleCardClick = (flatId: number, bookingId: number | null = null) => {
+  const handleCardClick = (flatId: number, bookingId: number) => {
     setSelectedFlatId(flatId);
     setSelectedBookingId(bookingId);
     setIsDetailsDialogOpen(true);
@@ -88,7 +83,13 @@ const DashboardPage: React.FC = () => {
     setIsDetailsDialogOpen(false);
     setSelectedFlatId(null);
     setSelectedBookingId(null);
+    triggerRefresh(); // Trigger a refresh when dialog closes
   };
+
+  const handleActionComplete = useCallback(() => {
+    fetchOwnerFlats(); // Re-fetch owner flats after an action in the dialog
+    fetchTenantBookings(); // Re-fetch tenant bookings after an action in the dialog
+  }, [fetchOwnerFlats, fetchTenantBookings]);
 
 
   if (loadingFlats || loadingBookings) {
@@ -171,7 +172,8 @@ const DashboardPage: React.FC = () => {
                             <CardFooter>
                                 <p>
                                     <strong>Status:</strong>
-                                    <span className={`font-semibold ml-2 ${booking.status === 'approved' ? 'text-green-600' : (booking.status === 'disapproved' || booking.status === 'cancelled' ? 'text-red-600' : '')}`}>
+                                    <span className={`font-semibold ml-2 ${booking.status === 'active' ? 'text-green-600' : (booking.status === 'disapproved' || 
+                                      booking.status === 'cancelled' ? 'text-red-600' : '')}`}>
                                         {booking.status}
                                     </span>
                                 </p>

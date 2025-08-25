@@ -67,11 +67,23 @@ export const getAllFlats = (
 
 
 export const getAllAmenities = () => api.get('/flats/amenities');
-export const createFlat = (flatData: any) => api.post('/flats', flatData);
+export const createFlat = (flatData: FormData) => {
+  return api.post('/flats', flatData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
 export const getOwnerFlats = () => api.get('/flats/owner');
 export const getFlatById = (id: number) => api.get(`/flats/${id}`);
 export const deleteFlat = (id: number) => api.delete(`/flats/${id}`);
-export const updateFlat = (id: number, flatData: any) => api.put(`/flats/${id}`, flatData);
+export const updateFlat = (id: number, flatData: FormData) => {
+  return api.put(`/flats/${id}`, flatData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
 
 // --- Booking API Calls ---
 export const createBooking = (flatId: number, bookingData: { startDate: Date; endDate: Date }) => api.post(`/flats/${flatId}/book`, bookingData);
@@ -80,6 +92,10 @@ export const getTenantBookings = () => api.get('/bookings/tenant');
 export const approveBooking = (bookingId: number) => api.put(`/bookings/${bookingId}/approve`);
 export const disapproveBooking = (bookingId: number) => api.put(`/bookings/${bookingId}/disapprove`);
 export const cancelBooking = (bookingId: number) => api.delete(`/bookings/${bookingId}`);
+export const confirmPayment = (bookingId: number) => api.put(`/bookings/${bookingId}/confirm-payment`); // Existing, but now part of the new flow
 
-// NEW: API call for tenant to confirm payment
-export const confirmPayment = (bookingId: number) => api.put(`/bookings/${bookingId}/confirm-payment`);
+// NEW: Extension API Calls
+export const requestExtension = (bookingId: number, newEndDate: Date) => api.post(`/bookings/${bookingId}/extensions`, { newEndDate });
+export const approveExtension = (extensionId: number) => api.put(`/bookings/extensions/${extensionId}/approve`);
+export const rejectExtension = (extensionId: number) => api.put(`/bookings/extensions/${extensionId}/reject`);
+export const confirmExtensionPayment = (extensionId: number) => api.put(`/bookings/extensions/${extensionId}/confirm-payment`);

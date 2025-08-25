@@ -18,6 +18,9 @@ export const createFlat = async (req: Request, res: Response) => {
     return res.status(403).json({ message: 'Not authorized. Only owners can create flats.' });
   }
 
+  // MODIFIED: The files will now be in req.files as an array
+  const files = req.files as Express.Multer.File[];
+
   const ownerId = req.user.id;
   const {
     flatNumber, floor, houseName, houseNumber, address, district, latitude, longitude,
@@ -29,7 +32,6 @@ export const createFlat = async (req: Request, res: Response) => {
   try {
     amenities = amenitiesStr ? JSON.parse(amenitiesStr) : [];
   } catch (parseError) {
-    console.error('Failed to parse amenities JSON:', parseError);
     return res.status(400).json({ message: 'Invalid format for amenities.' });
   }
 
@@ -37,11 +39,10 @@ export const createFlat = async (req: Request, res: Response) => {
     return res.status(400).json({ message: 'Please provide address, district and monthly rental cost.' });
   }
 
-  if (!req.file) {
-    return res.status(400).json({ message: 'Thumbnail image is required.' });
+  // MODIFIED: Check if at least one file was uploaded
+  if (!files || files.length === 0) {
+    return res.status(400).json({ message: 'At least one image is required.' });
   }
-  
-  const imageUrl = `/uploads/${req.file.filename}`;
 
   try {
     const newFlat = await prisma.flat.create({
@@ -67,11 +68,13 @@ export const createFlat = async (req: Request, res: Response) => {
             amenityId: amenity.id,
           })),
         },
+        // MODIFIED: Create multiple image records
         images: {
-          create: {
-            url: imageUrl,
-            isThumbnail: true,
-          }
+          create: files.map((file, index) => ({
+            url: `/uploads/${file.filename}`,
+            // Designate the first image as the thumbnail
+            isThumbnail: index === 0,
+          }))
         }
       },
     });

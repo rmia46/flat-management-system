@@ -10,7 +10,6 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -21,16 +20,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { toast } from 'sonner';
+import { X, MapPin, BedDouble, DollarSign, Info, FileImage, ThumbsUp } from 'lucide-react';
+import { Label } from '@/components/ui/label';
 
-// Define type for Amenity fetched from API
 interface Amenity {
   id: number;
   name: string;
   description: string | null;
 }
+
+const SectionHeader = ({ icon, title, subtitle }: { icon: React.ElementType, title: string, subtitle: string }) => {
+  const Icon = icon;
+  return (
+    <div className="flex items-center gap-4 py-4">
+      <div className="bg-primary/10 p-3 rounded-lg">
+        <Icon className="h-6 w-6 text-primary" />
+      </div>
+      <div>
+        <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+        <p className="text-sm text-muted-foreground">{subtitle}</p>
+      </div>
+    </div>
+  );
+};
 
 
 const CreateFlatPage: React.FC = () => {
@@ -48,89 +62,72 @@ const CreateFlatPage: React.FC = () => {
   });
   const [selectedAmenities, setSelectedAmenities] = useState<number[]>([]);
   const [availableAmenities, setAvailableAmenities] = useState<Amenity[]>([]);
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(isEditMode);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login');
-      return;
-    }
-    if (user?.userType !== 'owner') {
-      navigate('/dashboard');
+    if (!isAuthenticated || user?.userType !== 'owner') {
+      navigate(isAuthenticated ? '/dashboard' : '/login');
       return;
     }
 
-    const fetchAmenities = async () => {
+    const fetchInitialData = async () => {
       try {
-        const res = await getAllAmenities();
-        setAvailableAmenities(res.data);
-      } catch (err) {
-        console.error("Failed to fetch amenities:", err);
-        toast.error("Failed to fetch amenities.");
-      }
-    };
+        const amenityRes = await getAllAmenities();
+        setAvailableAmenities(amenityRes.data);
 
-    fetchAmenities();
-
-    if (isEditMode && flatId) {
-      const fetchFlatData = async () => {
-        setInitialLoading(true);
-        try {
-          const res = await getFlatById(parseInt(flatId));
-          const flatData = res.data;
-
+        if (isEditMode && flatId) {
+          setInitialLoading(true);
+          const flatRes = await getFlatById(parseInt(flatId));
+          const flatData = flatRes.data;
           setFormData({
-            flatNumber: flatData.flatNumber || '', floor: flatData.floor || '',
+            flatNumber: flatData.flatNumber || '', floor: String(flatData.floor || ''),
             houseName: flatData.houseName || '', houseNumber: flatData.houseNumber || '',
             address: flatData.address || '', district: flatData.district || '',
-            latitude: flatData.latitude !== null ? String(flatData.latitude) : '',
-            longitude: flatData.longitude !== null ? String(flatData.longitude) : '',
-            monthlyRentalCost: flatData.monthlyRentalCost !== null ? String(flatData.monthlyRentalCost) : '',
-            utilityCost: flatData.utilityCost !== null ? String(flatData.utilityCost) : '',
-            bedrooms: flatData.bedrooms !== null ? String(flatData.bedrooms) : '',
-            bathrooms: flatData.bathrooms !== null ? String(flatData.bathrooms) : '',
-            minimumStay: flatData.minimumStay !== null ? String(flatData.minimumStay) : '',
-            description: flatData.description || '', status: flatData.status || 'available',
+            latitude: String(flatData.latitude ?? ''), longitude: String(flatData.longitude ?? ''),
+            monthlyRentalCost: String(flatData.monthlyRentalCost ?? ''), utilityCost: String(flatData.utilityCost ?? ''),
+            bedrooms: String(flatData.bedrooms ?? ''), bathrooms: String(flatData.bathrooms ?? ''),
+            minimumStay: String(flatData.minimumStay ?? ''), description: flatData.description || '',
+            status: flatData.status || 'available',
           });
-
           if (flatData.amenities) {
-            const amenityIds = flatData.amenities.map((a: any) => a.amenity.id);
-            setSelectedAmenities(amenityIds);
+            setSelectedAmenities(flatData.amenities.map((a: any) => a.amenity.id));
           }
-        } catch (err) {
-          console.error("Failed to fetch flat data for editing:", err);
-          toast.error("Failed to fetch flat data for editing.");
-        } finally {
-          setInitialLoading(false);
         }
-      };
-      fetchFlatData();
-    } else {
-      setInitialLoading(false);
-    }
+      } catch (err) {
+        toast.error("Failed to load initial data.");
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+    fetchInitialData();
   }, [isAuthenticated, user, navigate, isEditMode, flatId]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const target = e.target as HTMLInputElement;
-    const { name, value } = target;
-    if (target.type === 'checkbox') {
-        setFormData({ ...formData, [name]: target.checked });
-    } else {
-        setFormData({ ...formData, [name]: value });
+  // MODIFIED: Handle change with negative number prevention
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target as HTMLInputElement;
+    if (type === 'number' && parseFloat(value) < 0) {
+      setFormData({ ...formData, [name]: '0' });
+      return;
     }
+    setFormData({ ...formData, [name]: value });
   };
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setImageFile(e.target.files[0]);
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
+      setImageFiles(prevFiles => [...prevFiles, ...files]);
     }
   };
+
+  const removeImage = (indexToRemove: number) => {
+    setImageFiles(prevFiles => prevFiles.filter((_, index) => index !== indexToRemove));
+  };
+
   const handleAmenityChange = (amenityId: number) => {
     setSelectedAmenities(prev =>
-      prev.includes(amenityId)
-        ? prev.filter(id => id !== amenityId)
-        : [...prev, amenityId]
+      prev.includes(amenityId) ? prev.filter(id => id !== amenityId) : [...prev, amenityId]
     );
   };
 
@@ -140,217 +137,126 @@ const CreateFlatPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!user || user.userType !== 'owner') { 
-      toast.error('You must be an owner to list/edit a flat.'); 
-      return; 
+    if (!user || user.userType !== 'owner') {
+      toast.error('You must be an owner to list/edit a flat.');
+      return;
     }
-    if (formData.latitude && isNaN(parseFloat(formData.latitude))) { 
-      toast.error('Latitude must be a valid number.'); 
-      return; 
-    }
-    if (formData.longitude && isNaN(parseFloat(formData.longitude))) { 
-      toast.error('Longitude must be a valid number.'); 
-      return; 
-    }
-    if (!formData.address || !formData.monthlyRentalCost) { 
-      toast.error('Full Address and Monthly Rent are required fields.'); 
-      return; 
+    if (imageFiles.length === 0 && !isEditMode) {
+      toast.error('Please upload at least one image.');
+      return;
     }
 
     setLoading(true);
-    try {
-      // const dataToSend = {
-      //   ...formData,
-      //   latitude: formData.latitude ? parseFloat(formData.latitude) : null,
-      //   longitude: formData.longitude ? parseFloat(formData.longitude) : null,
-      //   monthlyRentalCost: parseFloat(formData.monthlyRentalCost),
-      //   utilityCost: formData.utilityCost ? parseFloat(formData.utilityCost) : null,
-      //   bedrooms: formData.bedrooms ? parseInt(formData.bedrooms) : null,
-      //   bathrooms: formData.bathrooms ? parseInt(formData.bathrooms) : null,
-      //   floor: formData.floor ? parseInt(formData.floor) : null,
-      //   minimumStay: formData.minimumStay ? parseInt(formData.minimumStay) : null,
-      //   amenities: selectedAmenities.map(id => ({ id })),
-      // };
-      // --- NEW: Build FormData ---
-      const dataToSend = new FormData();
-      
-      // Append all form fields as strings
-      Object.entries(formData).forEach(([key, value]) => {
-        if (value !== null && value !== undefined) {
-          dataToSend.append(key, String(value));
-        }
-      });
-      
-      // Append amenities as a JSON string
-      dataToSend.append('amenities', JSON.stringify(selectedAmenities.map(id => ({ id }))));
-      
-      // Append the image file if it exists
-      if (imageFile) {
-        dataToSend.append('image', imageFile);
+    const dataToSend = new FormData();
+    Object.entries(formData).forEach(([key, value]) => {
+      if (value !== null && value !== undefined) {
+        dataToSend.append(key, String(value));
       }
-      let res;
+    });
+    dataToSend.append('amenities', JSON.stringify(selectedAmenities.map(id => ({ id }))));
+    
+    imageFiles.forEach(file => {
+      dataToSend.append('images', file);
+    });
+
+    try {
       if (isEditMode && flatId) {
-        res = await updateFlat(parseInt(flatId), dataToSend);
+        await updateFlat(parseInt(flatId), dataToSend);
         toast.success('Flat updated successfully!');
       } else {
-        res = await createFlat(dataToSend);
+        await createFlat(dataToSend);
         toast.success('Flat listed successfully!');
       }
-      console.log('Flat operation response:', res.data);
-
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 1500);
-
+      navigate('/dashboard');
     } catch (err: any) {
-      console.error('Error during flat operation:', err.response ? err.response.data : err.message);
-      toast.error(err.response?.data?.message || 'Failed to complete flat operation. Please try again.');
+      toast.error(err.response?.data?.message || 'Failed to complete flat operation.');
     } finally {
       setLoading(false);
     }
   };
 
   if (initialLoading) {
-    return (
-      <Card className="p-8 shadow-lg border border-border w-full max-w-2xl text-card-foreground text-center">
-        <CardContent><p className="text-xl">Loading flat for editing...</p></CardContent>
-      </Card>
-    );
+    return <Card className="p-8 text-center"><CardContent><p>Loading flat data...</p></CardContent></Card>;
   }
 
   return (
-    <Card className="p-8 shadow-lg border border-border w-full max-w-2xl text-card-foreground">
+    <Card className="p-4 sm:p-8 shadow-lg border w-full max-w-4xl">
       <CardHeader className="text-center pb-6">
-        <CardTitle className="text-3xl font-bold text-foreground mb-2">
-          {isEditMode ? 'Edit Flat Listing' : 'List Your Flat'}
-        </CardTitle>
-        
+        <CardTitle className="text-3xl font-bold">{isEditMode ? 'Edit Your Flat Listing' : 'List a New Flat'}</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-           {/* --- NEW: Image Upload Field --- */}
-          <div>
-            <label htmlFor="image" className="block text-muted-foreground text-sm font-medium mb-1">
-              {isEditMode ? 'Change Thumbnail Image:' : 'Thumbnail Image:'}
-            </label>
-            <Input
-              type="file"
-              id="image"
-              name="image"
-              accept="image/*"
-              onChange={handleImageChange}
-            />
-            {imageFile && <p className="text-xs mt-1 text-muted-foreground">Selected: {imageFile.name}</p>}
-          </div>
-          {/* All form fields are the same as before */}
-          <div>
-            <label htmlFor="address" className="block text-muted-foreground text-sm font-medium mb-1">Full Address (Street, City, Area, Country):</label>
-            <Input
-              type="text" id="address" name="address" value={formData.address} onChange={handleChange}
-              required
-            />
-          </div>
-
-           {/* NEW: District input field */}
-          <div>
-            <label htmlFor="district" className="block text-muted-foreground text-sm font-medium mb-1">District:</label>
-            <Input type="text" id="district" name="district" value={formData.district} onChange={handleChange} required />
-          </div>
-
-          {/* Latitude and Longitude - Manual Input */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                  <label htmlFor="latitude" className="block text-muted-foreground text-sm font-medium mb-1">Latitude (Optional):</label>
-                  <Input type="text" id="latitude" name="latitude" value={formData.latitude} onChange={handleChange} />
+        <form onSubmit={handleSubmit} className="space-y-8">
+          
+          <div className="space-y-4">
+            <SectionHeader icon={FileImage} title="Property Images" subtitle="Upload clear photos of your flat. The first image will be the thumbnail." />
+            <Label htmlFor="images" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-muted/50 hover:bg-muted/80 transition-colors">
+              <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                <svg className="w-8 h-8 mb-4 text-muted-foreground" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/></svg>
+                <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
               </div>
-              <div>
-                  <label htmlFor="longitude" className="block text-muted-foreground text-sm font-medium mb-1">Longitude (Optional):</label>
-                  <Input type="text" id="longitude" name="longitude" value={formData.longitude} onChange={handleChange} />
+            </Label>
+            <Input id="images" type="file" multiple accept="image/*" className="hidden" onChange={handleImageChange} />
+            {imageFiles.length > 0 && (
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 border p-2 rounded-md">
+                {imageFiles.map((file, index) => (
+                  <div key={index} className="relative group"><img src={URL.createObjectURL(file)} alt={`Preview ${index + 1}`} className="w-full h-24 object-cover rounded-md" onLoad={() => URL.revokeObjectURL(file.name)} /><button type="button" onClick={() => removeImage(index)} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"><X size={14} /></button>{index === 0 && (<div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs text-center py-0.5 rounded-b-md">Thumbnail</div>)}</div>
+                ))}
               </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="flatNumber" className="block text-muted-foreground text-sm font-medium mb-1">Flat Number:</label>
-              <Input type="text" id="flatNumber" name="flatNumber" value={formData.flatNumber} onChange={handleChange} />
+          <div className="space-y-4 border-t pt-6">
+            <SectionHeader icon={MapPin} title="Location Details" subtitle="Provide the full address and location of the property." />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div><Label htmlFor="address" className="mb-2 block">Full Address</Label><Input type="text" id="address" name="address" value={formData.address} onChange={handleChange} required /></div>
+              <div><Label htmlFor="district" className="mb-2 block">District</Label><Input type="text" id="district" name="district" value={formData.district} onChange={handleChange} required /></div>
+              <div><Label htmlFor="latitude" className="mb-2 block">Latitude (Optional)</Label><Input type="text" id="latitude" name="latitude" value={formData.latitude} onChange={handleChange} /></div>
+              <div><Label htmlFor="longitude" className="mb-2 block">Longitude (Optional)</Label><Input type="text" id="longitude" name="longitude" value={formData.longitude} onChange={handleChange} /></div>
             </div>
-            <div>
-              <label htmlFor="floor" className="block text-muted-foreground text-sm font-medium mb-1">Floor:</label>
-              <Input type="number" id="floor" name="floor" value={formData.floor} onChange={handleChange} />
+          </div>
+
+          <div className="space-y-4 border-t pt-6">
+            <SectionHeader icon={BedDouble} title="Property Specifics" subtitle="Details about the flat's layout and structure." />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div><Label htmlFor="houseName" className="mb-2 block">House Name</Label><Input type="text" id="houseName" name="houseName" value={formData.houseName} onChange={handleChange} /></div>
+              <div><Label htmlFor="houseNumber" className="mb-2 block">House Number</Label><Input type="text" id="houseNumber" name="houseNumber" value={formData.houseNumber} onChange={handleChange} /></div>
+              <div><Label htmlFor="flatNumber" className="mb-2 block">Flat Number</Label><Input type="text" id="flatNumber" name="flatNumber" value={formData.flatNumber} onChange={handleChange} /></div>
+              <div><Label htmlFor="floor" className="mb-2 block">Floor</Label><Input type="number" min="0" id="floor" name="floor" value={formData.floor} onChange={handleChange} /></div>
+              <div><Label htmlFor="bedrooms" className="mb-2 block">Bedrooms</Label><Input type="number" min="0" id="bedrooms" name="bedrooms" value={formData.bedrooms} onChange={handleChange} /></div>
+              <div><Label htmlFor="bathrooms" className="mb-2 block">Bathrooms</Label><Input type="number" min="0" id="bathrooms" name="bathrooms" value={formData.bathrooms} onChange={handleChange} /></div>
             </div>
-            <div>
-              <label htmlFor="houseName" className="block text-muted-foreground text-sm font-medium mb-1">House Name:</label>
-              <Input type="text" id="houseName" name="houseName" value={formData.houseName} onChange={handleChange} />
-            </div>
-            <div>
-              <label htmlFor="houseNumber" className="block text-muted-foreground text-sm font-medium mb-1">House Number:</label>
-              <Input type="text" id="houseNumber" name="houseNumber" value={formData.houseNumber} onChange={handleChange} />
-            </div>
-            <div>
-              <label htmlFor="monthlyRentalCost" className="block text-muted-foreground text-sm font-medium mb-1">Monthly Rent (BDT):</label>
-              <Input type="number" id="monthlyRentalCost" name="monthlyRentalCost" value={formData.monthlyRentalCost} onChange={handleChange} required />
-            </div>
-            <div>
-              <label htmlFor="utilityCost" className="block text-muted-foreground text-sm font-medium mb-1">Utility Cost (BDT, optional):</label>
-              <Input type="number" id="utilityCost" name="utilityCost" value={formData.utilityCost} onChange={handleChange} />
-            </div>
-            <div>
-              <label htmlFor="bedrooms" className="block text-muted-foreground text-sm font-medium mb-1">Bedrooms:</label>
-              <Input type="number" id="bedrooms" name="bedrooms" value={formData.bedrooms} onChange={handleChange} />
-            </div>
-            <div>
-              <label htmlFor="bathrooms" className="block text-muted-foreground text-sm font-medium mb-1">Bathrooms:</label>
-              <Input type="number" id="bathrooms" name="bathrooms" value={formData.bathrooms} onChange={handleChange} />
+          </div>
+
+          <div className="space-y-4 border-t pt-6">
+            <SectionHeader icon={DollarSign} title="Pricing & Terms" subtitle="Set the rental costs and minimum stay requirements." />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div><Label htmlFor="monthlyRentalCost" className="mb-2 block">Monthly Rent (BDT)</Label><Input type="number" min="0" id="monthlyRentalCost" name="monthlyRentalCost" value={formData.monthlyRentalCost} onChange={handleChange} required /></div>
+              <div><Label htmlFor="utilityCost" className="mb-2 block">Utility Cost (Optional)</Label><Input type="number" min="0" id="utilityCost" name="utilityCost" value={formData.utilityCost} onChange={handleChange} /></div>
+              <div><Label htmlFor="minimumStay" className="mb-2 block">Minimum Stay (Months)</Label><Input type="number" min="0" id="minimumStay" name="minimumStay" value={formData.minimumStay} onChange={handleChange} /></div>
             </div>
           </div>
           
-          {/* Amenity Checkboxes */}
-          <div>
-            <label className="block text-muted-foreground text-sm font-medium mb-1">Amenities:</label>
-            <div className="flex flex-wrap gap-x-4 gap-y-2">
-              {availableAmenities.map(amenity => (
-                <div key={amenity.id} className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id={`amenity-${amenity.id}`}
-                    name="amenities"
-                    checked={selectedAmenities.includes(amenity.id)}
-                    onChange={() => handleAmenityChange(amenity.id)}
-                    className="h-4 w-4 rounded-sm border border-input bg-background text-primary focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  />
-                  <label htmlFor={`amenity-${amenity.id}`} className="text-muted-foreground text-sm font-medium">
-                    {amenity.name}
-                  </label>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Other details */}
-          <div>
-            <label htmlFor="minimumStay" className="block text-muted-foreground text-sm font-medium mb-1">Minimum Stay (months, optional):</label>
-            <Input type="number" id="minimumStay" name="minimumStay" value={formData.minimumStay} onChange={handleChange} />
-          </div>
-          <div>
-            <label htmlFor="description" className="block text-muted-foreground text-sm font-medium mb-1">Description:</label>
-            <Textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              rows={4}
-            ></Textarea>
-          </div>
-
-          {/* Status Select (only visible in Edit Mode, and for Owners) */}
-          {isEditMode && user?.userType === 'owner' && (
+          <div className="space-y-4 border-t pt-6">
+            <SectionHeader icon={ThumbsUp} title="Features & Amenities" subtitle="Select the amenities available and add a detailed description." />
             <div>
-              <label htmlFor="status" className="block text-muted-foreground text-sm font-medium mb-1">Flat Status:</label>
+              <Label className="mb-2 block">Amenities</Label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-4 border rounded-md">
+                {availableAmenities.map(amenity => (
+                  <div key={amenity.id} className="flex items-center space-x-2">
+                    <input type="checkbox" id={`amenity-${amenity.id}`} checked={selectedAmenities.includes(amenity.id)} onChange={() => handleAmenityChange(amenity.id)} className="h-4 w-4 rounded-sm border-input bg-background text-primary focus:ring-2 focus:ring-ring" />
+                    <Label htmlFor={`amenity-${amenity.id}`} className="font-normal">{amenity.name}</Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+             <div><Label htmlFor="description" className="mb-2 block">Description</Label><Textarea id="description" name="description" value={formData.description} onChange={handleChange} rows={4}></Textarea></div>
+          </div>
+          
+          {isEditMode && (
+            <div className="space-y-4 border-t pt-6">
+              <SectionHeader icon={Info} title="Listing Status" subtitle="Set the current availability of your flat." />
               <Select value={formData.status} onValueChange={handleSelectChange}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
+                <SelectTrigger className="md:max-w-sm"><SelectValue placeholder="Select status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="available">Available</SelectItem>
                   <SelectItem value="booked">Booked</SelectItem>
@@ -361,17 +267,9 @@ const CreateFlatPage: React.FC = () => {
             </div>
           )}
 
-          {/* Submit Button */}
-          <div className="flex justify-center mt-6">
-            <Button type="submit" disabled={loading}>
-              {loading ? (
-                <>
-                  <LoadingSpinner className="mr-2" size={16} />
-                  {isEditMode ? 'Updating...' : 'Listing...'}
-                </>
-              ) : (
-                isEditMode ? 'Update Flat' : 'List Flat Now'
-              )}
+          <div className="flex justify-center pt-6 border-t">
+            <Button size="lg" type="submit" disabled={loading}>
+              {loading ? <LoadingSpinner className="mr-2" size={16} /> : (isEditMode ? 'Update Flat Listing' : 'List My Flat')}
             </Button>
           </div>
         </form>

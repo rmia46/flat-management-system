@@ -13,7 +13,14 @@ import { Link } from 'react-router-dom';
 import {
   getFlatById,
   createBooking,
-  // Other api imports
+  cancelBooking,
+  approveBooking,
+  disapproveBooking,
+  confirmPayment,
+  requestExtension,
+  approveExtension,
+  rejectExtension,
+  confirmExtensionPayment,
 } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
 import { Input } from '@/components/ui/input';
@@ -21,7 +28,7 @@ import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { motion, Variants } from 'framer-motion';
 
-// Interfaces remain the same
+// --- Interfaces (remain the same) ---
 interface FlatDetails {
   id: number;
   flatNumber?: string | null;
@@ -42,10 +49,41 @@ interface FlatDetails {
   status: string;
   rating?: number | null;
   ownerId: number;
-  owner?: { id: number; firstName: string; lastName:string; email?: string | null; phone?: string | null; nid?: string | null; };
+  owner?: { id: number; firstName: string; lastName: string; email?: string | null; phone?: string | null; nid?: string | null; };
   images?: { id: number; url: string; isThumbnail: boolean }[];
   amenities?: { amenity: { id: number; name: string; description: string | null } }[];
-  bookings?: any[];
+  bookings?: BookingDetail[];
+}
+interface BookingDetail {
+  id: number;
+  userId: number;
+  flatId: number;
+  startDate: string;
+  endDate: string;
+  status: string;
+  autoRenewEnabled: boolean;
+  requestedAt: string;
+  approvedAt?: string | null;
+  cancelledAt?: string | null;
+  payments: PaymentDetail[];
+  extensions: ExtensionDetail[];
+}
+interface PaymentDetail {
+  id: number;
+  bookingId: number;
+  amount: number;
+  datePaid: string;
+  transactionId?: string | null;
+  paymentMethod?: string | null;
+  status: string;
+}
+interface ExtensionDetail {
+  id: number;
+  bookingId: number;
+  newStartDate: string;
+  newEndDate: string;
+  status: string;
+  requestedAt: string;
 }
 interface FlatDetailsDialogProps {
   flatId: number | null;
@@ -66,7 +104,9 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, bookingId
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [bookingDates, setBookingDates] = useState({ startDate: '', endDate: '' });
+  const [extensionNewEndDate, setExtensionNewEndDate] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isActionLoading, setIsActionLoading] = useState(false);
 
   useEffect(() => {
     if (!flatId || !isOpen) {
@@ -84,17 +124,25 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, bookingId
     fetchDetails();
   }, [flatId, isOpen, triggerRefresh]);
 
-  const handleBookingSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!flatId) return;
+  const handleApiAction = async (action: () => Promise<any>, successMessage: string, errorMessage: string) => {
+    setIsActionLoading(true);
     try {
-      await createBooking(flatId, { startDate: new Date(bookingDates.startDate), endDate: new Date(bookingDates.endDate) });
-      toast.success("Booking request sent!");
+      await action();
+      toast.success(successMessage);
       onActionComplete?.();
       onClose();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to create booking.");
+      toast.error(err.response?.data?.message || errorMessage);
+    } finally {
+      setIsActionLoading(false);
     }
+  };
+
+  const handleBookingSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!flatId) return;
+    const bookingData = { startDate: new Date(bookingDates.startDate), endDate: new Date(bookingDates.endDate) };
+    handleApiAction(() => createBooking(flatId, bookingData), 'Booking request created successfully.', 'Failed to create booking.');
   };
 
   const getFlatContent = () => {
@@ -103,6 +151,7 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, bookingId
     if (!flatDetails) return <p>Flat details not found.</p>;
 
     const backendBaseUrl = api.defaults.baseURL?.replace('/api', '');
+    const currentBooking = flatDetails.bookings?.find(b => b.id === bookingId) || flatDetails.bookings?.[0];
 
     return (
       <Tabs defaultValue="overview" className="w-full">
@@ -112,7 +161,6 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, bookingId
           {isAuthenticated && <TabsTrigger value="booking">Booking</TabsTrigger>}
         </TabsList>
 
-        {/* CHANGED: Added fixed height and scrollbar to this container */}
         <motion.div
           key={flatDetails.id}
           variants={contentVariants}
@@ -121,19 +169,21 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, bookingId
           className="mt-4 h-[45vh] overflow-y-auto pr-3"
         >
           <TabsContent value="overview" className="space-y-4">
+            {/* Overview Content... */}
             <div className="grid grid-cols-2 gap-2 text-sm">
-              <p><strong>Address:</strong> {flatDetails.address}</p>
-              <p><strong>District:</strong> {flatDetails.district ?? 'N/A'}</p>
-              <p><strong>Rent:</strong> BDT {flatDetails.monthlyRentalCost?.toLocaleString() ?? 'N/A'}</p>
-              <p><strong>Beds:</strong> {flatDetails.bedrooms ?? 'N/A'}</p>
-              <p><strong>Baths:</strong> {flatDetails.bathrooms ?? 'N/A'}</p>
-              <p><strong>Status:</strong> <span className={`font-medium ${flatDetails.status === 'available' ? 'text-green-600' : 'text-destructive'}`}>{flatDetails.status}</span></p>
+                <p><strong>Address:</strong> {flatDetails.address}</p>
+                <p><strong>District:</strong> {flatDetails.district ?? 'N/A'}</p>
+                <p><strong>Rent:</strong> BDT {flatDetails.monthlyRentalCost?.toLocaleString() ?? 'N/A'}</p>
+                <p><strong>Beds:</strong> {flatDetails.bedrooms ?? 'N/A'}</p>
+                <p><strong>Baths:</strong> {flatDetails.bathrooms ?? 'N/A'}</p>
+                <p><strong>Status:</strong> <span className={`font-medium ${flatDetails.status === 'available' ? 'text-green-600' : 'text-destructive'}`}>{flatDetails.status}</span></p>
             </div>
             {flatDetails.description && (<div><h4 className="font-semibold mt-2 mb-1">Description</h4><p className="text-muted-foreground text-sm">{flatDetails.description}</p></div>)}
             {flatDetails.owner && (<div><h4 className="font-semibold mt-4 mb-1">Owner Information</h4><div className="text-sm"><p><strong>Name:</strong> {flatDetails.owner.firstName} {flatDetails.owner.lastName}</p>{isAuthenticated && <p><strong>Email:</strong> {flatDetails.owner.email ?? 'N/A'}</p>}</div></div>)}
           </TabsContent>
 
           <TabsContent value="media">
+            {/* Media Content... */}
             {flatDetails.images && flatDetails.images.length > 0 && (
               <div className="mb-4">
                 <h4 className="font-semibold mb-2">Photos</h4>
@@ -151,10 +201,21 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, bookingId
           </TabsContent>
 
           <TabsContent value="booking">
-            {user?.userType === 'tenant' && flatDetails.status === 'available' && !flatDetails.bookings?.length && (
-              <form onSubmit={handleBookingSubmit} className="space-y-4"><h3 className="text-lg font-bold">Book this Flat</h3><div><label htmlFor="startDate" className="block text-sm font-medium text-muted-foreground mb-1">Start Date:</label><Input type="date" id="startDate" value={bookingDates.startDate} onChange={(e) => setBookingDates({ ...bookingDates, startDate: e.target.value })} required /></div><div><label htmlFor="endDate" className="block text-sm font-medium text-muted-foreground mb-1">End Date:</label><Input type="date" id="endDate" value={bookingDates.endDate} onChange={(e) => setBookingDates({ ...bookingDates, endDate: e.target.value })} required /></div><Button type="submit">Book Now</Button></form>
+            {/* Booking Content... */}
+            {user?.userType === 'tenant' && flatDetails.status === 'available' && !currentBooking && (
+              <form onSubmit={handleBookingSubmit} className="space-y-4"><h3 className="text-lg font-bold">Book this Flat</h3><div><label htmlFor="startDate" className="block text-sm font-medium text-muted-foreground mb-1">Start Date:</label><Input type="date" id="startDate" value={bookingDates.startDate} onChange={(e) => setBookingDates({ ...bookingDates, startDate: e.target.value })} required /></div><div><label htmlFor="endDate" className="block text-sm font-medium text-muted-foreground mb-1">End Date:</label><Input type="date" id="endDate" value={bookingDates.endDate} onChange={(e) => setBookingDates({ ...bookingDates, endDate: e.target.value })} required /></div><Button type="submit" disabled={isActionLoading}>{isActionLoading ? <LoadingSpinner size={16}/> : 'Book Now'}</Button></form>
             )}
-            {flatDetails.bookings?.length ? <p className="text-muted-foreground">Booking details and actions would appear here.</p> : null}
+            {currentBooking && (
+              <BookingActions
+                booking={currentBooking}
+                isOwner={user?.id === flatDetails.ownerId}
+                userType={user?.userType}
+                isActionLoading={isActionLoading}
+                handleApiAction={handleApiAction}
+                extensionNewEndDate={extensionNewEndDate}
+                setExtensionNewEndDate={setExtensionNewEndDate}
+              />
+            )}
           </TabsContent>
         </motion.div>
       </Tabs>
@@ -166,7 +227,6 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, bookingId
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-[425px] md:max-w-xl lg:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Flat Details</DialogTitle></DialogHeader>
-          {/* CHANGED: Removed the <motion.div layout> wrapper */}
           {getFlatContent()}
         </DialogContent>
       </Dialog>
@@ -177,6 +237,79 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, bookingId
         </DialogContent>
       </Dialog>
     </>
+  );
+};
+
+// --- NEW: BookingActions Component ---
+const BookingActions = ({ booking, isOwner, userType, isActionLoading, handleApiAction, extensionNewEndDate, setExtensionNewEndDate }: any) => {
+  const latestExtension = booking.extensions?.sort((a: any, b: any) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime())[0];
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-lg font-bold">Booking Status</h3>
+        <p><strong>Status:</strong> {booking.status}</p>
+        <p><strong>Period:</strong> {new Date(booking.startDate).toDateString()} - {new Date(booking.endDate).toDateString()}</p>
+      </div>
+
+      <div className="border-t pt-4">
+        <h4 className="font-semibold mb-2">Actions</h4>
+        <div className="flex flex-wrap gap-2">
+          {/* --- Tenant Actions --- */}
+          {userType === 'tenant' && (
+            <>
+              {booking.status === 'approved' && (
+                <Button onClick={() => handleApiAction(() => confirmPayment(booking.id), 'Payment confirmed!', 'Failed to confirm payment.')} disabled={isActionLoading}>
+                  {isActionLoading ? <LoadingSpinner size={16}/> : 'Confirm Payment'}
+                </Button>
+              )}
+              {(booking.status === 'pending' || booking.status === 'approved') && (
+                <Button variant="destructive" onClick={() => handleApiAction(() => cancelBooking(booking.id), 'Booking cancelled.', 'Failed to cancel booking.')} disabled={isActionLoading}>
+                  {isActionLoading ? <LoadingSpinner size={16}/> : 'Cancel Booking'}
+                </Button>
+              )}
+              {booking.status === 'active' && (
+                <form onSubmit={(e) => { e.preventDefault(); handleApiAction(() => requestExtension(booking.id, new Date(extensionNewEndDate)), 'Extension requested.', 'Failed to request extension.') }} className="flex items-center gap-2">
+                  <Input type="date" value={extensionNewEndDate} onChange={(e) => setExtensionNewEndDate(e.target.value)} required />
+                  <Button type="submit" disabled={isActionLoading}>{isActionLoading ? <LoadingSpinner size={16}/> : 'Request Extension'}</Button>
+                </form>
+              )}
+              {latestExtension?.status === 'approved' && (
+                 <Button onClick={() => handleApiAction(() => confirmExtensionPayment(latestExtension.id), 'Extension payment confirmed!', 'Failed to confirm extension payment.')} disabled={isActionLoading}>
+                  {isActionLoading ? <LoadingSpinner size={16}/> : 'Confirm Extension Payment'}
+                </Button>
+              )}
+            </>
+          )}
+
+          {/* --- Owner Actions --- */}
+          {isOwner && (
+            <>
+              {booking.status === 'pending' && (
+                <>
+                  <Button onClick={() => handleApiAction(() => approveBooking(booking.id), 'Booking approved.', 'Failed to approve booking.')} disabled={isActionLoading}>
+                    {isActionLoading ? <LoadingSpinner size={16}/> : 'Approve'}
+                  </Button>
+                  <Button variant="destructive" onClick={() => handleApiAction(() => disapproveBooking(booking.id), 'Booking disapproved.', 'Failed to disapprove booking.')} disabled={isActionLoading}>
+                    {isActionLoading ? <LoadingSpinner size={16}/> : 'Disapprove'}
+                  </Button>
+                </>
+              )}
+              {latestExtension?.status === 'pending' && (
+                <>
+                  <Button onClick={() => handleApiAction(() => approveExtension(latestExtension.id), 'Extension approved.', 'Failed to approve extension.')} disabled={isActionLoading}>
+                    {isActionLoading ? <LoadingSpinner size={16}/> : 'Approve Extension'}
+                  </Button>
+                  <Button variant="destructive" onClick={() => handleApiAction(() => rejectExtension(latestExtension.id), 'Extension rejected.', 'Failed to reject extension.')} disabled={isActionLoading}>
+                    {isActionLoading ? <LoadingSpinner size={16}/> : 'Reject Extension'}
+                  </Button>
+                </>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 

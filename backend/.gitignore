@@ -3,3 +3,9 @@ node_modules
 .env
 
 /src/generated/prisma
+
+# Ignore all files inside the uploads directory
+/uploads/*
+
+# But do not ignore the .gitkeep file, so the directory is tracked
+!/uploads/.gitkeep

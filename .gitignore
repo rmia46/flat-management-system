@@ -24,3 +24,6 @@ npm-debug.log*
 
 # Prisma generated client (will be in node_modules usually)
 .prisma/client
+
+# Image uploads
+

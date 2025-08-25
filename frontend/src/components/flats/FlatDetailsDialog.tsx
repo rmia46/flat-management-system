@@ -28,7 +28,7 @@ import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { motion, Variants } from 'framer-motion';
 
-// --- Interfaces (remain the same) ---
+// --- Interfaces ---
 interface FlatDetails {
   id: number;
   flatNumber?: string | null;
@@ -67,6 +67,14 @@ interface BookingDetail {
   cancelledAt?: string | null;
   payments: PaymentDetail[];
   extensions: ExtensionDetail[];
+  // MODIFIED: Added user object to the booking detail
+  user?: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone?: string;
+    nid?: string;
+  };
 }
 interface PaymentDetail {
   id: number;
@@ -169,7 +177,6 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, bookingId
           className="mt-4 h-[45vh] overflow-y-auto pr-3"
         >
           <TabsContent value="overview" className="space-y-4">
-            {/* Overview Content... */}
             <div className="grid grid-cols-2 gap-2 text-sm">
                 <p><strong>Address:</strong> {flatDetails.address}</p>
                 <p><strong>District:</strong> {flatDetails.district ?? 'N/A'}</p>
@@ -183,7 +190,6 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, bookingId
           </TabsContent>
 
           <TabsContent value="media">
-            {/* Media Content... */}
             {flatDetails.images && flatDetails.images.length > 0 && (
               <div className="mb-4">
                 <h4 className="font-semibold mb-2">Photos</h4>
@@ -201,7 +207,6 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, bookingId
           </TabsContent>
 
           <TabsContent value="booking">
-            {/* Booking Content... */}
             {user?.userType === 'tenant' && flatDetails.status === 'available' && !currentBooking && (
               <form onSubmit={handleBookingSubmit} className="space-y-4"><h3 className="text-lg font-bold">Book this Flat</h3><div><label htmlFor="startDate" className="block text-sm font-medium text-muted-foreground mb-1">Start Date:</label><Input type="date" id="startDate" value={bookingDates.startDate} onChange={(e) => setBookingDates({ ...bookingDates, startDate: e.target.value })} required /></div><div><label htmlFor="endDate" className="block text-sm font-medium text-muted-foreground mb-1">End Date:</label><Input type="date" id="endDate" value={bookingDates.endDate} onChange={(e) => setBookingDates({ ...bookingDates, endDate: e.target.value })} required /></div><Button type="submit" disabled={isActionLoading}>{isActionLoading ? <LoadingSpinner size={16}/> : 'Book Now'}</Button></form>
             )}
@@ -240,7 +245,6 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, bookingId
   );
 };
 
-// --- NEW: BookingActions Component ---
 const BookingActions = ({ booking, isOwner, userType, isActionLoading, handleApiAction, extensionNewEndDate, setExtensionNewEndDate }: any) => {
   const latestExtension = booking.extensions?.sort((a: any, b: any) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime())[0];
 
@@ -252,10 +256,22 @@ const BookingActions = ({ booking, isOwner, userType, isActionLoading, handleApi
         <p><strong>Period:</strong> {new Date(booking.startDate).toDateString()} - {new Date(booking.endDate).toDateString()}</p>
       </div>
 
+      {/* NEW: Tenant Information section for Owner */}
+      {isOwner && booking.user && (
+        <div className="border-t pt-4">
+          <h4 className="font-semibold mb-2">Tenant Details</h4>
+          <div className="text-sm space-y-1">
+            <p><strong>Name:</strong> {booking.user.firstName} {booking.user.lastName}</p>
+            <p><strong>Email:</strong> {booking.user.email}</p>
+            <p><strong>Phone:</strong> {booking.user.phone || 'N/A'}</p>
+            <p><strong>NID:</strong> {booking.user.nid || 'N/A'}</p>
+          </div>
+        </div>
+      )}
+
       <div className="border-t pt-4">
         <h4 className="font-semibold mb-2">Actions</h4>
         <div className="flex flex-wrap gap-2">
-          {/* --- Tenant Actions --- */}
           {userType === 'tenant' && (
             <>
               {booking.status === 'approved' && (
@@ -282,7 +298,6 @@ const BookingActions = ({ booking, isOwner, userType, isActionLoading, handleApi
             </>
           )}
 
-          {/* --- Owner Actions --- */}
           {isOwner && (
             <>
               {booking.status === 'pending' && (

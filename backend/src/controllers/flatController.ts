@@ -273,11 +273,24 @@ export const getFlatById = async (req: Request, res: Response) => {
           owner: true,
           images: true,
           amenities: { include: { amenity: true } },
-          bookings: { // Include bookings for owner to see status
+          bookings: {
             where: { flatId: parseInt(id) },
-            include: { payments: true, extensions: true }, // Include payments and extensions
+            // MODIFIED: Added user include here for the owner
+            include: { 
+              payments: true, 
+              extensions: true, 
+              user: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                  phone: true,
+                  nid: true,
+                }
+              } 
+            },
             orderBy: { createdAt: 'desc' },
-            take: 1, // Only get the latest booking
+            take: 1,
           }
         },
       };
@@ -319,11 +332,24 @@ export const getFlatById = async (req: Request, res: Response) => {
 
           images: { select: { id: true, url: true, isThumbnail: true } },
           amenities: { select: { amenity: { select: { id: true, name: true, description: true } } } },
-          bookings: { // Include bookings for tenant to see their own status
-            where: { userId: userId || -1 }, // Filter by current user if tenant
-            include: { payments: true, extensions: true }, // Include payments and extensions
+          bookings: {
+            where: { userId: userId || -1 },
+            // MODIFIED: Added user include here for the tenant view
+            include: { 
+              payments: true, 
+              extensions: true,
+              user: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                  phone: true,
+                  nid: true,
+                }
+              }
+            },
             orderBy: { createdAt: 'desc' },
-            take: 1, // Only get the latest booking
+            take: 1,
           }
         },
       };

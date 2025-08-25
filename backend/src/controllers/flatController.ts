@@ -264,6 +264,13 @@ export const getFlatById = async (req: Request, res: Response) => {
     const isOwnerOfFlat = userId && flatAuthCheck.ownerId === userId && userType === 'owner';
     const isAuthenticatedUser = !!userId;
 
+    // MODIFIED: Define the booking where clause once
+    const relevantBookingWhereClause = {
+      status: {
+        in: ['pending', 'approved', 'active']
+      }
+    };
+
     let queryOptions: Prisma.FlatFindUniqueArgs;
 
     if (isOwnerOfFlat) {
@@ -274,8 +281,10 @@ export const getFlatById = async (req: Request, res: Response) => {
           images: true,
           amenities: { include: { amenity: true } },
           bookings: {
-            where: { flatId: parseInt(id) },
-            // MODIFIED: Added user include here for the owner
+            where: { 
+              flatId: parseInt(id),
+              ...relevantBookingWhereClause // Apply filter
+            },
             include: { 
               payments: true, 
               extensions: true, 
@@ -315,7 +324,6 @@ export const getFlatById = async (req: Request, res: Response) => {
           createdAt: true,
           updatedAt: true,
           ownerId: true,
-
           flatNumber: isOwnerOfFlat as boolean,
           floor: isOwnerOfFlat as boolean,
           houseNumber: isOwnerOfFlat as boolean,
@@ -329,12 +337,13 @@ export const getFlatById = async (req: Request, res: Response) => {
               nid: isOwnerOfFlat ? true : false,
             },
           },
-
           images: { select: { id: true, url: true, isThumbnail: true } },
           amenities: { select: { amenity: { select: { id: true, name: true, description: true } } } },
           bookings: {
-            where: { userId: userId || -1 },
-            // MODIFIED: Added user include here for the tenant view
+            where: { 
+              userId: userId || -1,
+              ...relevantBookingWhereClause // Apply filter
+            },
             include: { 
               payments: true, 
               extensions: true,
@@ -579,12 +588,6 @@ export const approveBooking = async (req: Request, res: Response) => {
       }),
     ]);
     
-    // Flat status remains 'pending' until tenant confirms payment
-    // await prisma.flat.update({
-    //   where: { id: booking.flat.id },
-    //   data: { status: 'pending' },
-    // });
-
     res.status(200).json({ message: 'Booking approved by owner. Awaiting tenant payment.', booking: updatedBooking });
   } catch (error) {
     console.error('Error approving booking:', error);
@@ -616,7 +619,6 @@ export const disapproveBooking = async (req: Request, res: Response) => {
       return res.status(403).json({ message: 'Not authorized to disapprove this booking.' });
     }
 
-    // Disapprove if status is 'pending' or 'approved' (awaiting payment)
     if (booking.status !== 'pending' && booking.status !== 'approved') {
         return res.status(400).json({ message: 'Booking cannot be disapproved from its current status.' });
     }
@@ -626,11 +628,11 @@ export const disapproveBooking = async (req: Request, res: Response) => {
             where: { id: parseInt(id) },
             data: { status: 'disapproved', cancelledAt: new Date() },
         }),
-        prisma.payment.updateMany({ // Update associated payments to 'failed' or 'cancelled'
+        prisma.payment.updateMany({
             where: { bookingId: parseInt(id), status: { in: ['pending', 'awaiting_tenant_payment'] } },
             data: { status: 'failed' },
         }),
-        prisma.flat.update({ // Update flat status back to 'available'
+        prisma.flat.update({
             where: { id: booking.flat.id },
             data: { status: 'available' }
         })
@@ -658,8 +660,8 @@ export const getTenantBookings = async (req: Request, res: Response) => {
       },
       include: {
         flat: { select: { id: true, address: true, houseName: true, owner: { select: { firstName: true, lastName: true } } } },
-        payments: true, // Include payments
-        extensions: true, // Include extensions
+        payments: true,
+        extensions: true,
       },
       orderBy: {
         createdAt: 'desc',
@@ -697,7 +699,6 @@ export const cancelBooking = async (req: Request, res: Response) => {
       return res.status(403).json({ message: 'Not authorized to cancel this booking.' });
     }
 
-    // Allow cancellation if pending or approved (awaiting payment)
     if (booking.status !== 'pending' && booking.status !== 'approved') {
       return res.status(400).json({ message: 'Only pending or approved (awaiting payment) bookings can be cancelled by tenant.' });
     }
@@ -707,11 +708,11 @@ export const cancelBooking = async (req: Request, res: Response) => {
             where: { id: parseInt(id) },
             data: { status: 'cancelled', cancelledAt: new Date() },
         }),
-        prisma.payment.updateMany({ // Mark associated payments as failed
+        prisma.payment.updateMany({
             where: { bookingId: parseInt(id), status: { in: ['pending', 'awaiting_tenant_payment'] } },
             data: { status: 'failed' },
         }),
-        prisma.flat.update({ // Update the flat status back to 'available'
+        prisma.flat.update({
             where: { id: booking.flat.id },
             data: { status: 'available' }
         })
@@ -724,7 +725,7 @@ export const cancelBooking = async (req: Request, res: Response) => {
   }
 };
 
-// --- NEW: Tenant Confirms Payment for Booking ---
+// --- Tenant Confirms Payment for Booking ---
 export const confirmPayment = async (req: Request, res: Response) => {
   const { id } = req.params; // Booking ID
   const tenantId = req.user?.id;
@@ -738,7 +739,7 @@ export const confirmPayment = async (req: Request, res: Response) => {
       where: { id: parseInt(id) },
       include: { 
         flat: { select: { id: true, status: true } }, 
-        payments: { where: { status: 'awaiting_tenant_payment' } } // Get only payments awaiting tenant confirmation
+        payments: { where: { status: 'awaiting_tenant_payment' } }
       },
     });
 
@@ -750,7 +751,7 @@ export const confirmPayment = async (req: Request, res: Response) => {
       return res.status(403).json({ message: 'Not authorized to confirm payment for this booking.' });
     }
 
-    if (booking.status !== 'approved') { // Only confirm payment if booking is 'approved' by owner
+    if (booking.status !== 'approved') {
       return res.status(400).json({ message: 'Booking is not in "approved" status. Payment cannot be confirmed.' });
     }
 
@@ -758,19 +759,18 @@ export const confirmPayment = async (req: Request, res: Response) => {
         return res.status(400).json({ message: 'No pending payments found for this booking.' });
     }
     
-    // Assume we are confirming the first pending payment for simplicity
     const paymentToConfirm = booking.payments[0];
 
     const [updatedBooking, updatedPayment] = await prisma.$transaction([
       prisma.booking.update({
         where: { id: parseInt(id) },
-        data: { status: 'active' }, // Booking becomes active
+        data: { status: 'active' },
       }),
       prisma.payment.update({
         where: { id: paymentToConfirm.id },
-        data: { status: 'completed', datePaid: new Date() }, // Mark payment as completed
+        data: { status: 'completed', datePaid: new Date() },
       }),
-      prisma.flat.update({ // Update the flat status to 'booked'
+      prisma.flat.update({
         where: { id: booking.flat.id },
         data: { status: 'booked' },
       }),
@@ -783,9 +783,9 @@ export const confirmPayment = async (req: Request, res: Response) => {
   }
 };
 
-// --- NEW: Tenant Requests Extension ---
+// --- Tenant Requests Extension ---
 export const requestExtension = async (req: Request, res: Response) => {
-    const { id: bookingId } = req.params; // Booking ID
+    const { id: bookingId } = req.params;
     const tenantId = req.user?.id;
     const { newEndDate } = req.body;
 
@@ -816,23 +816,21 @@ export const requestExtension = async (req: Request, res: Response) => {
             return res.status(400).json({ message: 'New end date must be after the current end date.' });
         }
 
-        // Create a new extension request
         const newExtension = await prisma.extension.create({
             data: {
                 booking: { connect: { id: booking.id } },
-                newStartDate: currentEndDate, // Extension starts after current booking ends
+                newStartDate: currentEndDate,
                 newEndDate: requestedNewEndDate,
-                status: 'pending', // Awaiting owner approval (using 'pending' as per schema)
+                status: 'pending',
             },
         });
 
-        // Create a new payment record for the extension
         await prisma.payment.create({
             data: {
                 booking: { connect: { id: booking.id } },
-                amount: booking.flat.monthlyRentalCost, // Assuming same monthly rent for extension
-                datePaid: new Date(), // Will be updated upon actual payment
-                status: 'pending', // Payment for extension is pending
+                amount: booking.flat.monthlyRentalCost,
+                datePaid: new Date(),
+                status: 'pending',
                 paymentMethod: 'system',
             },
         });
@@ -845,7 +843,7 @@ export const requestExtension = async (req: Request, res: Response) => {
     }
 };
 
-// --- NEW: Owner Approves Extension Request ---
+// --- Owner Approves Extension Request ---
 export const approveExtension = async (req: Request, res: Response) => {
     const { id: extensionId } = req.params;
     const ownerId = req.user?.id;
@@ -862,7 +860,7 @@ export const approveExtension = async (req: Request, res: Response) => {
                     select: { 
                         id: true, 
                         flat: { select: { ownerId: true } }, 
-                        payments: { where: { status: 'pending' } } // Get pending payments for this booking
+                        payments: { where: { status: 'pending' } }
                     } 
                 } 
             },
@@ -878,8 +876,6 @@ export const approveExtension = async (req: Request, res: Response) => {
             return res.status(400).json({ message: 'Extension is not in "pending" status for approval.' });
         }
 
-        // Find the specific payment related to this extension request
-        // This assumes the latest 'pending' payment for the booking is for this extension
         const pendingExtensionPayment = extension.booking.payments.find(p => p.status === 'pending' && p.datePaid.toDateString() === extension.requestedAt.toDateString());
 
         if (!pendingExtensionPayment) {
@@ -889,9 +885,9 @@ export const approveExtension = async (req: Request, res: Response) => {
         const [updatedExtension] = await prisma.$transaction([
             prisma.extension.update({
                 where: { id: parseInt(extensionId) },
-                data: { status: 'approved' }, // Approved by owner, awaiting tenant payment
+                data: { status: 'approved' },
             }),
-            prisma.payment.update({ // Update the payment status to 'awaiting_tenant_payment'
+            prisma.payment.update({
                 where: { id: pendingExtensionPayment.id },
                 data: { status: 'awaiting_tenant_payment' },
             }),
@@ -905,7 +901,7 @@ export const approveExtension = async (req: Request, res: Response) => {
     }
 };
 
-// --- NEW: Owner Rejects Extension Request ---
+// --- Owner Rejects Extension Request ---
 export const rejectExtension = async (req: Request, res: Response) => {
     const { id: extensionId } = req.params;
     const ownerId = req.user?.id;
@@ -922,7 +918,7 @@ export const rejectExtension = async (req: Request, res: Response) => {
                     select: { 
                         id: true, 
                         flat: { select: { ownerId: true } },
-                        payments: { where: { status: 'pending' } } // Get pending payments for this booking
+                        payments: { where: { status: 'pending' } }
                     } 
                 } 
             },
@@ -934,11 +930,10 @@ export const rejectExtension = async (req: Request, res: Response) => {
         if (extension.booking.flat.ownerId !== ownerId) {
             return res.status(403).json({ message: 'Not authorized to reject this extension.' });
         }
-        if (extension.status !== 'pending' && extension.status !== 'approved') { // Can reject if pending or approved (awaiting payment)
+        if (extension.status !== 'pending' && extension.status !== 'approved') {
             return res.status(400).json({ message: 'Extension cannot be rejected from its current status.' });
         }
 
-        // Find the specific payment related to this extension request
         const pendingExtensionPayment = extension.booking.payments.find(p => p.status === 'pending' && p.datePaid.toDateString() === extension.requestedAt.toDateString());
 
         const [updatedExtension] = await prisma.$transaction([
@@ -946,7 +941,7 @@ export const rejectExtension = async (req: Request, res: Response) => {
                 where: { id: parseInt(extensionId) },
                 data: { status: 'rejected' },
             }),
-            ...(pendingExtensionPayment ? [ // Conditionally update payment if found
+            ...(pendingExtensionPayment ? [
                 prisma.payment.update({
                     where: { id: pendingExtensionPayment.id },
                     data: { status: 'failed' },
@@ -962,9 +957,9 @@ export const rejectExtension = async (req: Request, res: Response) => {
     }
 };
 
-// --- NEW: Tenant Confirms Payment for Extension ---
+// --- Tenant Confirms Payment for Extension ---
 export const confirmExtensionPayment = async (req: Request, res: Response) => {
-    const { id: extensionId } = req.params; // Extension ID
+    const { id: extensionId } = req.params;
     const tenantId = req.user?.id;
 
     if (!tenantId || req.user?.userType !== 'tenant') {
@@ -981,7 +976,7 @@ export const confirmExtensionPayment = async (req: Request, res: Response) => {
                         userId: true, 
                         endDate: true,
                         flatId: true,
-                        payments: { where: { status: 'awaiting_tenant_payment' } } // Get payments awaiting tenant confirmation
+                        payments: { where: { status: 'awaiting_tenant_payment' } }
                     } 
                 } 
             },
@@ -993,11 +988,10 @@ export const confirmExtensionPayment = async (req: Request, res: Response) => {
         if (extension.booking.userId !== tenantId) {
             return res.status(403).json({ message: 'Not authorized to confirm payment for this extension.' });
         }
-        if (extension.status !== 'approved') { // Only confirm payment if extension is 'approved' by owner
+        if (extension.status !== 'approved') {
             return res.status(400).json({ message: 'Extension is not in "approved" status. Payment cannot be confirmed.' });
         }
 
-        // Find the specific payment related to this extension request
         const paymentToConfirm = extension.booking.payments.find(p => p.status === 'awaiting_tenant_payment' && p.datePaid.toDateString() === extension.requestedAt.toDateString());
 
         if (!paymentToConfirm) {
@@ -1007,13 +1001,13 @@ export const confirmExtensionPayment = async (req: Request, res: Response) => {
         const [updatedExtension, updatedBooking, updatedPayment] = await prisma.$transaction([
             prisma.extension.update({
                 where: { id: parseInt(extensionId) },
-                data: { status: 'approved' }, // Final status for extension
+                data: { status: 'approved' },
             }),
-            prisma.booking.update({ // Update the main booking's end date
+            prisma.booking.update({
                 where: { id: extension.booking.id },
                 data: { endDate: extension.newEndDate },
             }),
-            prisma.payment.update({ // Mark payment as completed
+            prisma.payment.update({
                 where: { id: paymentToConfirm.id },
                 data: { status: 'completed', datePaid: new Date() },
             }),

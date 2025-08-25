@@ -256,7 +256,6 @@ const BookingActions = ({ booking, isOwner, userType, isActionLoading, handleApi
         <p><strong>Period:</strong> {new Date(booking.startDate).toDateString()} - {new Date(booking.endDate).toDateString()}</p>
       </div>
 
-      {/* NEW: Tenant Information section for Owner */}
       {isOwner && booking.user && (
         <div className="border-t pt-4">
           <h4 className="font-semibold mb-2">Tenant Details</h4>
@@ -272,6 +271,7 @@ const BookingActions = ({ booking, isOwner, userType, isActionLoading, handleApi
       <div className="border-t pt-4">
         <h4 className="font-semibold mb-2">Actions</h4>
         <div className="flex flex-wrap gap-2">
+          {/* --- Tenant Actions --- */}
           {userType === 'tenant' && (
             <>
               {booking.status === 'approved' && (
@@ -298,6 +298,7 @@ const BookingActions = ({ booking, isOwner, userType, isActionLoading, handleApi
             </>
           )}
 
+          {/* --- Owner Actions --- */}
           {isOwner && (
             <>
               {booking.status === 'pending' && (
@@ -309,6 +310,12 @@ const BookingActions = ({ booking, isOwner, userType, isActionLoading, handleApi
                     {isActionLoading ? <LoadingSpinner size={16}/> : 'Disapprove'}
                   </Button>
                 </>
+              )}
+              {/* NEW: Added cancel button for owner when booking is awaiting payment */}
+              {booking.status === 'approved' && (
+                <Button variant="destructive" onClick={() => handleApiAction(() => disapproveBooking(booking.id), 'Booking cancelled.', 'Failed to cancel booking.')} disabled={isActionLoading}>
+                  {isActionLoading ? <LoadingSpinner size={16}/> : 'Cancel Booking'}
+                </Button>
               )}
               {latestExtension?.status === 'pending' && (
                 <>

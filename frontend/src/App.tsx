@@ -86,7 +86,7 @@ const NavBar: React.FC = () => {
     <nav className="bg-card text-card-foreground shadow-sm p-4 border-b border-border">
       <div className="container mx-auto flex justify-between items-center">
         <Link to="/" className="text-xl font-bold text-primary">
-          Flat Manager
+          BasaVara.com
         </Link>
 
         {/* Main Navigation Menu */}

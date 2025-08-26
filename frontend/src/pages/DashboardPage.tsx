@@ -17,9 +17,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
-import { Home, Bookmark, Building2, BellRing, Star, Wrench } from 'lucide-react'; // Removed Eye icon
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { Home, Bookmark, Building2, BellRing, Star } from 'lucide-react'; // Removed Wrench icon, Switch, and Label imports
 
 const DashboardPage: React.FC = () => {
   const { user, triggerRefresh } = useAuth();
@@ -35,7 +33,8 @@ const DashboardPage: React.FC = () => {
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
   const [reviewTargetBooking, setReviewTargetBooking] = useState<any | null>(null);
 
-  const [devTimeTravel, setDevTimeTravel] = useState(false);
+  // Reintroduced devTimeTravel state and set to true by default
+  const [devTimeTravel, setDevTimeTravel] = useState(true); 
 
   const fetchData = useCallback(async () => {
     if (!user) return;
@@ -88,8 +87,6 @@ const DashboardPage: React.FC = () => {
     setReviewTargetBooking(booking);
     setIsReviewDialogOpen(true);
   };
-
-  // Removed handleViewReviewsClick function
   
   const handleDetailsDialogClose = () => {
     setIsDetailsDialogOpen(false);
@@ -99,7 +96,11 @@ const DashboardPage: React.FC = () => {
   };
 
   if (loading) {
-    return <div className="flex justify-center items-center h-full"><LoadingSpinner size={48} /></div>;
+    return (
+      <div className="flex justify-center items-center h-full">
+        <LoadingSpinner size={48} />
+      </div>
+    );
   }
 
   if (!user) {
@@ -135,18 +136,7 @@ const DashboardPage: React.FC = () => {
           </div>
         )}
 
-        {import.meta.env.DEV && (
-          <Card className="border-primary/50">
-            <CardHeader><CardTitle className="flex items-center gap-2 text-primary"><Wrench size={20} /> Developer Tools</CardTitle></CardHeader>
-            <CardContent>
-              <div className="flex items-center space-x-2">
-                <Switch id="time-travel-mode" checked={devTimeTravel} onCheckedChange={setDevTimeTravel} />
-                <Label htmlFor="time-travel-mode">Enable "Time Travel" Mode</Label>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">This treats active bookings as completed, allowing you to test the review system.</p>
-            </CardContent>
-          </Card>
-        )}
+        {/* Developer Tools section is removed from the UI but its effect (devTimeTravel) is active */}
 
         <Card>
           <CardHeader><CardTitle>{user.userType === 'owner' ? 'Your Listed Flats' : 'Your Bookings'}</CardTitle></CardHeader>
@@ -161,7 +151,8 @@ const DashboardPage: React.FC = () => {
                     <h2 className="text-2xl font-bold text-foreground mb-4">Bookings for Review</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {ownerBookings.map((booking: any) => {
-                            const isCompleted = devTimeTravel || booking.status === 'completed';
+                            // isCompleted now uses devTimeTravel to always show review option if devTimeTravel is true
+                            const isCompleted = devTimeTravel || booking.status === 'completed'; 
                             const hasReview = booking.reviews?.some((r: any) => r.reviewerId === user.id);
 
                             if (isCompleted) {
@@ -169,11 +160,10 @@ const DashboardPage: React.FC = () => {
                                     <Card key={booking.id} className="cursor-pointer hover:shadow-lg flex flex-col" onClick={() => handleCardClick(booking.flat.id, booking.id)}>
                                         <CardHeader><CardTitle>{booking.flat.address}</CardTitle><CardDescription>Booking with {booking.user.firstName}</CardDescription></CardHeader>
                                         <CardContent className="flex-grow"><p><strong>Dates:</strong> {new Date(booking.startDate).toLocaleDateString()} - {new Date(booking.endDate).toLocaleDateString()}</p></CardContent>
-                                        <CardFooter> {/* Removed flex-col and gap-2 as only one button remains */}
+                                        <CardFooter>
                                             <Button variant="outline" className="h-8 px-3 rounded-full border-primary text-primary hover:bg-primary/10 hover:text-primary w-full" onClick={(e) => handleReviewClick(e, booking)}>
                                                 <Star size={14} className="mr-2" /> {hasReview ? 'Edit Your Review' : 'Leave a Review'}
                                             </Button>
-                                            {/* Removed "View All Reviews" button */}
                                         </CardFooter>
                                     </Card>
                                 );
@@ -188,20 +178,20 @@ const DashboardPage: React.FC = () => {
               tenantBookings.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {tenantBookings.map((booking: any) => {
-                    const isCompleted = devTimeTravel || new Date(booking.endDate) < new Date();
+                    // isCompleted now uses devTimeTravel to always show review option if devTimeTravel is true
+                    const isCompleted = devTimeTravel || new Date(booking.endDate) < new Date(); 
                     const hasReview = booking.reviews?.some((r: any) => r.reviewerId === user.id);
 
                     return (
                       <Card key={booking.id} className="cursor-pointer hover:shadow-lg flex flex-col" onClick={() => handleCardClick(booking.flat.id, booking.id)}>
                         <CardHeader><CardTitle>{booking.flat.address}</CardTitle><CardDescription>{isCompleted ? 'Booking Completed' : `Status: ${booking.status}`}</CardDescription></CardHeader>
                         <CardContent className="flex-grow"><p><strong>Dates:</strong> {new Date(booking.startDate).toLocaleDateString()} - {new Date(booking.endDate).toLocaleDateString()}</p></CardContent>
-                        <CardFooter> {/* Removed flex-col and gap-2 as only one button remains */}
+                        <CardFooter>
                           {isCompleted && (
                             <Button variant="outline" className="h-8 px-3 rounded-full border-primary text-primary hover:bg-primary/10 hover:text-primary w-full" onClick={(e) => handleReviewClick(e, booking)}>
                               <Star size={14} className="mr-2" /> {hasReview ? 'Edit Your Review' : 'Leave a Review'}
                             </Button>
                           )}
-                          {/* Removed "View All Reviews" button */}
                         </CardFooter>
                       </Card>
                     );

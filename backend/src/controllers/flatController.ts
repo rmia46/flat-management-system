@@ -113,7 +113,6 @@ export const createFlat = async (req: Request, res: Response) => {
         images: {
           create: files.map((file, index) => ({
             url: `/uploads/${file.filename}`,
-            // Designate the first image as the thumbnail
             isThumbnail: index === 0,
           }))
         }
@@ -309,10 +308,9 @@ export const getFlatById = async (req: Request, res: Response) => {
 
     const isOwnerOfFlat = userId && flatAuthCheck.ownerId === userId && userType === 'owner';
     const isAuthenticatedUser = !!userId;
-
     const relevantBookingWhereClause = {
       status: {
-        in: ['pending', 'approved', 'active']
+        in: ['pending', 'approved', 'active', 'completed'] // Include completed bookings for reviews
       }
     };
 
@@ -325,7 +323,7 @@ export const getFlatById = async (req: Request, res: Response) => {
           owner: true,
           images: true,
           amenities: { include: { amenity: true } },
-          reviews: {
+          reviews: { // Include flat reviews
             include: {
               reviewer: { select: { firstName: true, lastName: true, userType: true } }
             },
@@ -336,7 +334,12 @@ export const getFlatById = async (req: Request, res: Response) => {
             include: { 
               payments: true, 
               extensions: true, 
-              user: { select: { firstName: true, lastName: true, email: true, phone: true, nid: true } } 
+              user: { select: { firstName: true, lastName: true, email: true, phone: true, nid: true } },
+              reviews: { // Include booking reviews
+                include: {
+                  reviewer: { select: { firstName: true, lastName: true, userType: true } }
+                },
+              },
             },
             orderBy: { createdAt: 'desc' },
             take: 1,
@@ -351,8 +354,6 @@ export const getFlatById = async (req: Request, res: Response) => {
           monthlyRentalCost: true, utilityCost: isAuthenticatedUser, bedrooms: true, bathrooms: true,
           minimumStay: true, description: true, status: true, rating: true, createdAt: true,
           updatedAt: true, ownerId: true,
-          // Removed the conditional `!!isOwnerOfFlat` as it's always false here
-          // By not including them in the `select`, they will not be sent to the frontend
           owner: {
             select: {
               id: true, firstName: true, lastName: true, email: isAuthenticatedUser,
@@ -360,7 +361,7 @@ export const getFlatById = async (req: Request, res: Response) => {
           },
           images: { select: { id: true, url: true, isThumbnail: true } },
           amenities: { select: { amenity: { select: { id: true, name: true, description: true } } } },
-          reviews: {
+          reviews: { // Include flat reviews
             include: {
               reviewer: { select: { firstName: true, lastName: true, userType: true } }
             },
@@ -370,7 +371,12 @@ export const getFlatById = async (req: Request, res: Response) => {
             where: { userId: userId || -1, ...relevantBookingWhereClause },
             include: {
               payments: true, extensions: true,
-              user: { select: { firstName: true, lastName: true, email: true, phone: true, nid: true } }
+              user: { select: { firstName: true, lastName: true, email: true, phone: true, nid: true } },
+              reviews: { // Include booking reviews
+                include: {
+                  reviewer: { select: { firstName: true, lastName: true, userType: true } }
+                },
+              },
             },
             orderBy: { createdAt: 'desc' },
             take: 1,
@@ -391,7 +397,6 @@ export const getFlatById = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Server error fetching flat details.' });
   }
 };
-
 
 // --- Delete a Flat (Owner only) ---
 export const deleteFlat = async (req: Request, res: Response) => {
@@ -548,8 +553,13 @@ export const getOwnerBookings = async (req: Request, res: Response) => {
       include: {
         user: { select: { id: true, firstName: true, lastName: true, email: true } },
         flat: { select: { id: true, address: true, houseName: true } },
-        payments: true, // Include payments to check status
-        extensions: true, // Include extensions
+        payments: true,
+        extensions: true,
+        reviews: { // Include booking reviews
+          include: {
+            reviewer: { select: { id: true, userType: true } },
+          },
+        },
       },
       orderBy: {
         createdAt: 'desc',
@@ -682,6 +692,11 @@ export const getTenantBookings = async (req: Request, res: Response) => {
         flat: { select: { id: true, address: true, houseName: true, owner: { select: { firstName: true, lastName: true } } } },
         payments: true,
         extensions: true,
+        reviews: { // Include booking reviews
+          include: {
+            reviewer: { select: { id: true, userType: true } },
+          },
+        },
       },
       orderBy: {
         createdAt: 'desc',

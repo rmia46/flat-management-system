@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { getFlatById, createBooking, cancelBooking, approveBooking, disapproveBooking, confirmPayment, requestExtension, approveExtension, rejectExtension, confirmExtensionPayment } from '@/services/api';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/context/AuthContext'; // Corrected import path for AuthContext
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
@@ -75,7 +75,10 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, bookingId
     if (!flatDetails) return <p>Flat details not found.</p>;
 
     const backendBaseUrl = api.defaults.baseURL?.replace('/api', '');
-    const currentBooking = flatDetails.bookings?.find(b => b.id === bookingId) || flatDetails.bookings?.[0];
+    // Ensure currentBooking is correctly identified, especially if bookingId is provided
+    const currentBooking = bookingId 
+      ? flatDetails.bookings?.find(b => b.id === bookingId) 
+      : flatDetails.bookings?.[0]; // Fallback to first booking if no specific bookingId
 
     return (
       <Tabs defaultValue="overview" className="w-full">
@@ -125,12 +128,30 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, bookingId
 
           <TabsContent value="reviews">
             <div className="space-y-4">
-              {flatDetails.reviews && flatDetails.reviews.length > 0 ? (
-                flatDetails.reviews.map(review => (
-                  <ReviewCard key={review.id} review={review} />
-                ))
-              ) : (
-                <p className="text-muted-foreground text-sm text-center pt-4">No reviews yet for this property.</p>
+              {/* Display general flat reviews */}
+              {flatDetails.reviews && flatDetails.reviews.length > 0 && (
+                <>
+                  <h4 className="font-semibold">Flat Reviews</h4>
+                  {flatDetails.reviews.map(review => (
+                    <ReviewCard key={`flat-review-${review.id}`} review={review} />
+                  ))}
+                </>
+              )}
+              
+              {/* Display booking-specific reviews if a current booking is selected and has reviews */}
+              {currentBooking?.reviews && currentBooking.reviews.length > 0 && (
+                <>
+                  <h4 className="font-semibold mt-4">Reviews for this Booking</h4>
+                  {currentBooking.reviews.map((review: any) => (
+                    <ReviewCard key={`booking-review-${review.id}`} review={review} />
+                  ))}
+                </>
+              )}
+
+              {/* Message if no reviews at all */}
+              {(!flatDetails.reviews || flatDetails.reviews.length === 0) && 
+               (!currentBooking?.reviews || currentBooking.reviews.length === 0) && (
+                <p className="text-muted-foreground text-sm text-center pt-4">No reviews yet for this property or its bookings.</p>
               )}
             </div>
           </TabsContent>

@@ -13,7 +13,7 @@ import { motion, Variants } from 'framer-motion';
 import ReviewCard from '../reviews/ReviewCard';
 
 // Interfaces...
-interface Review { id: number; ratingGiven: number; comment: string | null; dateSubmitted: string; reviewerId: number; reviewer: { firstName: string; lastName: string; }; }
+interface Review { id: number; ratingGiven: number; comment: string | null; dateSubmitted: string; reviewerId: number; reviewer: { firstName: string; lastName: string; userType: string; }; } // Updated Review interface
 interface FlatDetails { id: number; address: string; district?: string | null; monthlyRentalCost: number | null; bedrooms?: number | null; bathrooms?: number | null; description?: string | null; status: string; ownerId: number; owner?: { id: number; firstName: string; lastName: string; email?: string | null; }; images?: { id: number; url: string; isThumbnail: boolean }[]; amenities?: { amenity: { id: number; name: string; } }[]; bookings?: any[]; reviews?: Review[]; }
 interface FlatDetailsDialogProps { flatId: number | null; bookingId?: number | null; isOpen: boolean; onClose: () => void; onActionComplete?: () => void; }
 
@@ -49,7 +49,6 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, bookingId
     }
   }, [isOpen, flatId, triggerRefresh, fetchDetails]);
 
-  // ... (handleApiAction and handleBookingSubmit remain the same)
   const handleApiAction = async (action: () => Promise<any>, successMessage: string, errorMessage: string) => {
     setIsActionLoading(true);
     try {

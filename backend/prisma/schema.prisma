@@ -46,8 +46,8 @@ model Flat {
   houseNumber       String?     @map("HouseNumber")
   address           String      @map("Address")
   district          String?     @map("District")
-  latitude          Float?       @map("Latitude") // For Google Maps
-  longitude         Float?       @map("Longitude") // For Google Maps
+  latitude          Float?      @map("Latitude") // For Google Maps
+  longitude         Float?      @map("Longitude") // For Google Maps
   rating            Decimal?    @map("Rating") @db.Decimal(3,2) // DECIMAL(3,2) in MySQL
   bedrooms          Int?
   bathrooms         Int?
@@ -90,28 +90,28 @@ model Advertisement {
 
 model Booking {
   id               Int       @id @default(autoincrement()) @map("BookingID")
-  userId           Int       @map("UserID") // Foreign Key to Users (Tenant)
-  flatId           Int       @map("FlatID") // Foreign Key to Flat
+  userId           Int       @map("UserID")
+  flatId           Int       @map("FlatID")
   startDate        DateTime  @map("StartDate")
   endDate          DateTime  @map("EndDate")
-  status           String    @default("pending") @map("Status") // 'pending', 'approved', 'active', 'cancelled', 'expired'
-  autoRenewEnabled Boolean   @default(true) @map("IsRecurring") // For auto-renewal feature
-  requestedAt      DateTime  @default(now()) @map("DateCreated") // Maps to DateCreated
-  approvedAt       DateTime? // Nullable until approved
-  cancelledAt      DateTime? // Nullable if not cancelled
+  status           String    @default("pending") @map("Status")
+  autoRenewEnabled Boolean   @default(true) @map("IsRecurring")
+  requestedAt      DateTime  @default(now()) @map("DateCreated")
+  approvedAt       DateTime?
+  cancelledAt      DateTime?
 
   user             User      @relation(fields: [userId], references: [id])
   flat             Flat      @relation(fields: [flatId], references: [id])
-  extensions       Extension[] // One Booking can have many Extensions
-  payments         Payment[]   // One Booking can have many Payments
+  extensions       Extension[]
+  payments         Payment[]
+  reviews          Review[]  // <--- IMPORTANT: Change this from 'review Review?' to 'reviews Review[]'
 
   createdAt        DateTime  @default(now()) @map("CreatedAt")
   updatedAt        DateTime  @updatedAt @map("UpdatedAt")
 
-  review           Review?
-
   @@map("Booking")
 }
+
 
 model Extension {
   id          Int      @id @default(autoincrement()) @map("ExtensionID")
@@ -151,7 +151,7 @@ model Review {
   flatId        Int      @map("FlatID") // The flat being reviewed
   reviewerId    Int      @map("ReviewerID") // The user writing the review
   reviewedUserId Int?     @map("ReviewedUserID") // The user being reviewed (e.g., the tenant)
-  bookingId     Int?     @unique @map("BookingID") // The specific booking this review is for
+  bookingId     Int?     @map("BookingID") // The specific booking this review is for
 
   ratingGiven   Decimal  @map("RatingGiven") @db.Decimal(3, 2) // The overall calculated average
   comment       String?  @db.Text
@@ -176,6 +176,7 @@ model Review {
   createdAt     DateTime @default(now()) @map("CreatedAt")
   updatedAt     DateTime @updatedAt @map("UpdatedAt")
 
+  @@unique([bookingId, reviewerId]) // <--- THIS IS THE CRUCIAL CHANGE
   @@map("Review")
 }
 
@@ -197,8 +198,7 @@ model Amenity {
   id          Int      @id @default(autoincrement()) @map("AmenityID")
   name        String   @unique
   description String?
-
-  flats       FlatAmenity[] // Many-to-Many relationship with Flats
+  flats       FlatAmenity[]
 
   @@map("Amenity")
 }
@@ -210,7 +210,7 @@ model FlatAmenity {
   flat      Flat    @relation(fields: [flatId], references: [id])
   amenity   Amenity @relation(fields: [amenityId], references: [id])
 
-  @@id([flatId, amenityId]) // Composite primary key
+  @@id([flatId, amenityId])
 
-  @@map("Flat_Amenities") // Maps to the junction table name
+  @@map("Flat_Amenities")
 }

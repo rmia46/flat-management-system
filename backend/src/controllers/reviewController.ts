@@ -16,7 +16,6 @@ export const upsertReview = async (req: Request, res: Response) => {
   }
 
   try {
-    // --- Eligibility Check ---
     const booking = await prisma.booking.findUnique({
       where: { id: parseInt(bookingId) },
       include: { flat: true },
@@ -26,19 +25,18 @@ export const upsertReview = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Associated booking not found.' });
     }
     
-    // FIXED: Use findFirst to avoid the strict type issue with findUnique on a nullable unique field.
-    const existingReview = await prisma.review.findUnique({
-        where: { bookingId: parseInt(bookingId) }
+    // CHANGED: Find an existing review by both bookingId AND reviewerId
+    const existingReview = await prisma.review.findFirst({
+        where: { bookingId: parseInt(bookingId), reviewerId: reviewerId }
     });
 
     const isTenantOfBooking = booking.userId === reviewerId;
     const isOwnerOfFlat = booking.flat.ownerId === reviewerId;
 
     if (!isTenantOfBooking && !isOwnerOfFlat) {
-      return res.status(403).json({ message: 'You are not authorized to review this booking.' });
+      return res.status(403).json({ message: 'You can only review a booking that you are either the tenant or the owner of.' });
     }
     
-    // --- Data Preparation & Calculation ---
     let reviewData: any = {
       comment,
       flatId: parseInt(flatId),
@@ -79,11 +77,10 @@ export const upsertReview = async (req: Request, res: Response) => {
 
     reviewData.ratingGiven = new Decimal(totalRating / criteriaCount);
 
-    // --- Upsert Logic ---
     let savedReview;
     if (existingReview) {
       if (existingReview.reviewerId !== reviewerId) {
-        return res.status(403).json({ message: 'You are not authorized to edit this review.' });
+        return res.status(403).json({ message: 'You can only edit a review that you have written yourself.' });
       }
       savedReview = await prisma.review.update({
         where: { id: existingReview.id },
@@ -95,7 +92,6 @@ export const upsertReview = async (req: Request, res: Response) => {
       });
     }
 
-    // Recalculate the flat's average rating
     const aggregateRatings = await prisma.review.aggregate({
       _avg: { ratingGiven: true },
       where: { flatId: parseInt(flatId) },
@@ -113,7 +109,8 @@ export const upsertReview = async (req: Request, res: Response) => {
     console.error('Error upserting review:', error);
     res.status(500).json({ message: 'Server error while submitting review.' });
   }
-};
+};  
+
 
 
 // --- Get Reviews for a Flat ---
@@ -130,6 +127,7 @@ export const getReviewsForFlat = async (req: Request, res: Response) => {
           select: {
             firstName: true,
             lastName: true,
+            userType: true,
           },
         },
       },

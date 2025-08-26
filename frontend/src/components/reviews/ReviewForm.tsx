@@ -47,19 +47,44 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ booking, existingReview, onRevi
   const { user } = useAuth();
   
   // State for Tenant's criteria
-  const [flatQuality, setFlatQuality] = useState(existingReview?.flatQuality || 0);
-  const [hygiene, setHygiene] = useState(existingReview?.hygiene || 0);
-  const [location, setLocation] = useState(existingReview?.location || 0);
-  const [ownerBehavior, setOwnerBehavior] = useState(existingReview?.ownerBehavior || 0);
+  const [flatQuality, setFlatQuality] = useState(0);
+  const [hygiene, setHygiene] = useState(0);
+  const [location, setLocation] = useState(0);
+  const [ownerBehavior, setOwnerBehavior] = useState(0);
   
   // State for Owner's criteria
-  const [tenantBehavior, setTenantBehavior] = useState(existingReview?.tenantBehavior || 0);
-  const [cooperation, setCooperation] = useState(existingReview?.cooperation || 0);
+  const [tenantBehavior, setTenantBehavior] = useState(0);
+  const [cooperation, setCooperation] = useState(0);
 
-  const [comment, setComment] = useState(existingReview?.comment || '');
+  const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
 
   const isTenantReviewing = user?.userType === 'tenant';
+
+  // NEW: useEffect to populate form fields when existingReview changes
+  useEffect(() => {
+    if (existingReview) {
+      setComment(existingReview.comment || '');
+      if (isTenantReviewing) {
+        setFlatQuality(existingReview.flatQuality || 0);
+        setHygiene(existingReview.hygiene || 0);
+        setLocation(existingReview.location || 0);
+        setOwnerBehavior(existingReview.ownerBehavior || 0);
+      } else { // Must be owner reviewing tenant
+        setTenantBehavior(existingReview.tenantBehavior || 0);
+        setCooperation(existingReview.cooperation || 0);
+      }
+    } else {
+      // Reset form if no existing review (e.g., switching from edit to new review)
+      setComment('');
+      setFlatQuality(0);
+      setHygiene(0);
+      setLocation(0);
+      setOwnerBehavior(0);
+      setTenantBehavior(0);
+      setCooperation(0);
+    }
+  }, [existingReview, isTenantReviewing]); // Re-run when existingReview or userType changes
 
   // Calculate the overall rating based on the criteria
   const overallRating = useMemo(() => {

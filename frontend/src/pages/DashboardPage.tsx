@@ -17,7 +17,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
-import { Home, Bookmark, Building2, BellRing, Star, Wrench } from 'lucide-react';
+import { Home, Bookmark, Building2, BellRing, Star, Wrench, ChevronRight } from 'lucide-react';
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
@@ -111,7 +111,14 @@ const DashboardPage: React.FC = () => {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <StatCard icon={Building2} title="Total Listings" value={ownerStats.totalListings} />
             <StatCard icon={Home} title="Occupied Flats" value={ownerStats.occupiedFlats} />
-            <StatCard icon={BellRing} title="New Requests" value={ownerStats.newRequests} description="View booking requests" link="/dashboard/bookings" />
+            <StatCard
+              icon={BellRing}
+              title="New Requests"
+              value={ownerStats.newRequests}
+              description="View booking requests"
+              link="/dashboard/bookings"
+              highlight={ownerStats.newRequests > 0}
+            />
           </div>
         )}
         {user?.userType === 'tenant' && tenantStats && (
@@ -188,10 +195,36 @@ const DashboardPage: React.FC = () => {
   );
 };
 
-interface StatCardProps { title: string; value: number | string; icon: React.ElementType; description?: string; link?: string; }
-const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, description, link }) => {
-  const cardContent = (<CardContent className="flex flex-row items-center justify-between space-y-0 pb-2 pt-6"><div className="space-y-1"><h3 className="text-sm font-medium text-muted-foreground">{title}</h3><p className="text-2xl font-bold">{value}</p>{description && <p className="text-xs text-muted-foreground">{description}</p>}</div><Icon className="h-6 w-6 text-muted-foreground" /></CardContent>);
-  return (<Card>{link ? <Link to={link} className="block hover:bg-muted/50 rounded-lg">{cardContent}</Link> : <div className="p-0">{cardContent}</div>}</Card>);
+interface StatCardProps { title: string; value: number | string; icon: React.ElementType; description?: string; link?: string; highlight?: boolean; }
+const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, description, link, highlight = false }) => {
+  const cardClasses = `transition-all duration-300 ${highlight ? 'border-primary ring-2 ring-primary/50 animate-pulse-once' : ''} ${link ? 'hover:scale-[1.02] hover:shadow-lg' : ''}`;
+  const iconClasses = `h-6 w-6 ${highlight ? 'text-primary' : 'text-muted-foreground'}`;
+
+  const cardContent = (
+    <CardContent className="flex flex-row items-center justify-between space-y-0 pb-2 pt-6">
+      <div className="space-y-1">
+        <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
+        <p className="text-2xl font-bold">{value}</p>
+        {description && <p className="text-xs text-muted-foreground">{description}</p>}
+      </div>
+      <div className="flex items-center gap-2"> {/* New wrapper for icon and arrow */}
+        <Icon className={iconClasses} />
+        {link && <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1" />} {/* Chevron icon */}
+      </div>
+    </CardContent>
+  );
+
+  return (
+    <Card className={cardClasses}>
+      {link ? (
+        <Link to={link} className="block hover:bg-muted/50 rounded-lg group transition-transform duration-300"> {/* Removed scale and shadow */}
+          {cardContent}
+        </Link>
+      ) : (
+        <div className="p-0">{cardContent}</div>
+      )}
+    </Card>
+  );
 };
 
 export default DashboardPage;

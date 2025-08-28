@@ -88,7 +88,7 @@ export const loginUser = catchAsync(async (req: Request, res: Response, next: Ne
     message: 'Logged in successfully',
     data: {
       token,
-      user: { id: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email, userType: user.userType },
+      user: { id: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email, userType: user.userType, verified: user.verified },
     },
   });
 });

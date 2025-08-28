@@ -75,12 +75,12 @@ const CreateFlatPage: React.FC = () => {
     const fetchInitialData = async () => {
       try {
         const amenityRes = await getAllAmenities();
-        setAvailableAmenities(amenityRes.data);
+        setAvailableAmenities(amenityRes.data.data.amenities);
 
         if (isEditMode && flatId) {
           setInitialLoading(true);
           const flatRes = await getFlatById(parseInt(flatId));
-          const flatData = flatRes.data;
+          const flatData = flatRes.data.flat;
           setFormData({
             flatNumber: flatData.flatNumber || '', floor: String(flatData.floor || ''),
             houseName: flatData.houseName || '', houseNumber: flatData.houseNumber || '',
@@ -95,8 +95,8 @@ const CreateFlatPage: React.FC = () => {
             setSelectedAmenities(flatData.amenities.map((a: any) => a.amenity.id));
           }
         }
-      } catch (err) {
-        toast.error("Failed to load initial data.");
+      } catch (err: any) {
+        toast.error(err.message || "Failed to load initial data.");
       } finally {
         setInitialLoading(false);
       }
@@ -104,7 +104,6 @@ const CreateFlatPage: React.FC = () => {
     fetchInitialData();
   }, [isAuthenticated, user, navigate, isEditMode, flatId]);
 
-  // MODIFIED: Handle change with negative number prevention
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target as HTMLInputElement;
     if (type === 'number' && parseFloat(value) < 0) {
@@ -169,7 +168,7 @@ const CreateFlatPage: React.FC = () => {
       }
       navigate('/dashboard');
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to complete flat operation.');
+      toast.error(err.message || 'Failed to complete flat operation.');
     } finally {
       setLoading(false);
     }

@@ -41,7 +41,7 @@ const ReviewDialog: React.FC<ReviewDialogProps> = ({
           existingReview={existingReview}
           onReviewSubmitted={() => {
             onReviewSubmitted();
-            onClose(); // Close the dialog after submission
+            onClose();
           }}
         />
       </DialogContent>

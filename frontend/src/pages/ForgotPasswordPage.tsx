@@ -1,4 +1,4 @@
-// frontend/src/pages/ForgotPasswordPage.tsx (NEW)
+// frontend/src/pages/ForgotPasswordPage.tsx
 import React, { useState } from 'react';
 import { forgotPassword as forgotPasswordApi } from '@/services/api';
 import { Button } from '@/components/ui/button';
@@ -20,12 +20,12 @@ const ForgotPasswordPage: React.FC = () => {
     try {
       const response = await forgotPasswordApi(email);
       toast.success(response.data.message);
-      // Navigate to the next page, passing the email and the temporary reset token
-      navigate('/reset-password', { state: { email, resetToken: response.data.resetToken } });
+      if (response.data.data?.resetToken) {
+        navigate('/reset-password', { state: { email, resetToken: response.data.data.resetToken } });
+      }
     } catch (err: any) {
       console.error('Forgot password error:', err);
-      const errorMessage = err.response?.data?.message || 'Failed to send password reset code.';
-      toast.error(errorMessage);
+      toast.error(err.message || 'Failed to send password reset code.');
     } finally {
       setLoading(false);
     }

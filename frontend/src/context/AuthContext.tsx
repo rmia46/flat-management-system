@@ -24,7 +24,7 @@ interface RegisterUserResponse {
 interface LoginResult {
   success: boolean;
   needsVerification?: boolean;
-  emailForVerification?: string; // Ensure this is present
+  emailForVerification?: string;
 }
 
 interface AuthContextType {
@@ -54,26 +54,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const navigate = useNavigate();
 
-  console.log('AuthContext: Initializing/Re-rendering AuthProvider');
-  console.log('AuthContext: isAuthenticated:', isAuthenticated, 'isLoading:', isLoading);
-  console.log('AuthContext: User:', user);
-
   useEffect(() => {
-    console.log('AuthContext: useEffect running (initial load)');
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
 
     if (storedToken && storedUser) {
       try {
         const parsedUser: User = JSON.parse(storedUser);
+        // ADD THIS CHECK
+        if (typeof parsedUser.verified === 'undefined') {
+          throw new Error('User data in local storage is outdated. Please log in again.');
+        }
         setToken(storedToken);
         setUser(parsedUser);
         setIsAuthenticated(true);
         setAuthToken(storedToken);
-        console.log('AuthContext: User and token loaded from localStorage.');
-      } catch (e) {
-        console.error("AuthContext: Failed to parse stored user or token:", e);
-        toast.error("Your session has been corrupted. Please log in again.");
+      } catch (e: any) { // Catch the new error type
+        toast.error(e.message || "Your session has been corrupted. Please log in again.");
         logout();
       }
     }
@@ -81,11 +78,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    const interceptor = api.interceptors.response.use(
+    const interceptorId = api.interceptors.response.use(
       (response) => response,
       (error) => {
         if (error.response?.status === 401) {
-          console.log("Interceptor: 401 Unauthorized received. Logging out.");
           logout();
           toast.error("Your session has expired. Please log in again.");
         }
@@ -93,7 +89,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     );
     return () => {
-      api.interceptors.response.eject(interceptor);
+      api.interceptors.response.eject(interceptorId);
     };
   }, [navigate]);
 
@@ -101,8 +97,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const loginUser = async (credentials: any): Promise<LoginResult> => {
     setIsLoading(true);
     try {
-      const res = await login(credentials);
-      const { token: receivedToken, user: userData } = res.data;
+      const response = await login(credentials);
+      // **FIXED**: Correctly destructure from the nested 'data' object in the response
+      const { token: receivedToken, user: userData } = response.data.data;
 
       localStorage.setItem('token', receivedToken);
       localStorage.setItem('user', JSON.stringify(userData));
@@ -113,16 +110,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setAuthToken(receivedToken);
       navigate('/dashboard');
       toast.success('Login successful!');
-      console.log('AuthContext: Login successful!');
       return { success: true };
     } catch (error: any) {
-      console.error('AuthContext: Login failed:', error);
-      const message = error.response?.data?.message || 'Login failed. Please check your credentials.';
+      const message = error.message || 'Login failed. Please check your credentials.';
       
-      if (error.response?.status === 403 && error.response?.data?.email) {
+      if (message.includes('Account not verified')) {
         toast.error(message);
-        // Ensure emailForVerification is returned here
-        return { success: false, needsVerification: true, emailForVerification: error.response.data.email };
+        return { success: false, needsVerification: true, emailForVerification: credentials.email };
       }
 
       toast.error(message);
@@ -135,14 +129,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const registerUser = async (userData: any): Promise<RegisterUserResponse> => {
     setIsLoading(true);
     try {
-      const res = await register(userData);
-      const { verificationToken, userEmail } = res.data; 
+      const response = await register(userData);
+      // **FIXED**: Correctly destructure from the nested 'data' object
+      const { verificationToken, userEmail } = response.data.data; 
 
-      console.log('AuthContext: Registration successful, awaiting verification!');
       return { success: true, verificationToken, userEmail }; 
-    } catch (error) {
-      console.error('AuthContext: Registration failed:', error);
-      const message = (error as any).response?.data?.message || 'Registration failed. Please try again.';
+    } catch (error: any) {
+      const message = (error as any).message || 'Registration failed. Please try again.';
       toast.error(message);
       return { success: false };
     } finally {

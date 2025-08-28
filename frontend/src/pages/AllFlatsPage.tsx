@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { getAllFlats, getAllAmenities } from '../services/api';
 import FlatList from '../components/flats/FlatList';
-import FlatCardSkeleton from '../components/flats/FlatCardSkeleton'; // NEW: Import skeleton
+import FlatCardSkeleton from '../components/flats/FlatCardSkeleton';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -63,12 +63,11 @@ const AllFlatsPage: React.FC = () => {
     const fetchFlats = async () => {
         setLoading(true);
         try {
-            // Simulate a slightly longer load time to see the skeleton
             await new Promise(resolve => setTimeout(resolve, 500)); 
             const response = await getAllFlats(sortBy, sortOrder, Array.from(selectedAmenities), district, minRent ? parseFloat(minRent) : undefined, maxRent ? parseFloat(maxRent) : undefined);
-            setFlats(response.data);
+            setFlats(response.data.data.flats);
         } catch (err: any) {
-            toast.error('Failed to load flats. Please try again later.');
+            toast.error(err.message || 'Failed to load flats. Please try again later.');
         } finally {
             setLoading(false);
         }
@@ -78,9 +77,9 @@ const AllFlatsPage: React.FC = () => {
         const fetchAmenities = async () => {
             try {
                 const response = await getAllAmenities();
-                setAvailableAmenities(response.data);
-            } catch (err) {
-                toast.error("Failed to fetch amenities.");
+                setAvailableAmenities(response.data.data.amenities);
+            } catch (err: any) {
+                toast.error(err.message || "Failed to fetch amenities.");
             }
         };
         fetchAmenities();

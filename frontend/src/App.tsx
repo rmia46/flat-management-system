@@ -9,8 +9,8 @@ import AllFlatsPage from './pages/AllFlatsPage';
 import CreateFlatPage from './pages/CreateFlatPage';
 import BookingsPage from './pages/BookingsPage';
 import VerifyEmailPage from './pages/VerifyEmailPage'; 
-import ForgotPasswordPage from './pages/ForgotPasswordPage'; // NEW
-import PasswordResetVerificationPage from './pages/PasswordResetVerificationPage'; // NEW
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import PasswordResetVerificationPage from './pages/PasswordResetVerificationPage';
 
 import { useAuth } from './context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -33,7 +33,6 @@ import {
 import { cn } from "@/lib/utils";
 import { Toaster } from 'sonner';
 
-// Utility component from shadcn/ui docs for list items in NavigationMenuContent
 const ListItem = React.forwardRef<
   React.ComponentRef<"a">,
   React.ComponentPropsWithoutRef<"a">
@@ -78,7 +77,6 @@ const ListItem = React.forwardRef<
 ListItem.displayName = "ListItem"
 
 
-// Component for the Navigation Bar
 const NavBar: React.FC = () => {
   const { isAuthenticated, user, logout, isLoading } = useAuth(); 
 
@@ -89,7 +87,6 @@ const NavBar: React.FC = () => {
           BasaVara.com
         </Link>
 
-        {/* Main Navigation Menu */}
         <NavigationMenu>
           <NavigationMenuList>
             <NavigationMenuItem>
@@ -142,11 +139,9 @@ const NavBar: React.FC = () => {
           </NavigationMenuList>
         </NavigationMenu>
 
-        {/* Right-aligned buttons and user info */}
         <div className="flex items-center space-x-4">
           {isAuthenticated ? (
             <>
-              {/* User Info Popover Trigger */}
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="ghost" className="text-muted-foreground text-sm cursor-pointer" disabled={isLoading}> 
@@ -182,7 +177,6 @@ const NavBar: React.FC = () => {
                 </PopoverContent>
               </Popover>
 
-              {/* Dashboard button */}
               <Button asChild variant="default">
                 <Link to="/dashboard">Dashboard</Link>
               </Button>
@@ -211,11 +205,8 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   const { isAuthenticated, isLoading, user } = useAuth(); 
   const navigate = useNavigate();
 
-  console.log('PrivateRoute: Checking isAuthenticated:', isAuthenticated, 'Loading:', isLoading);
-
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || !user?.verified)) { 
-      console.log('PrivateRoute: Not authenticated or not verified, redirecting to /login');
       navigate('/login', { replace: true });
     }
   }, [isAuthenticated, isLoading, navigate, user?.verified]);
@@ -233,7 +224,6 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
 
 function App() {
-    console.log('App: Rendering App component');
   return (
     <div className="min-h-screen flex flex-col font-sans bg-background text-foreground">
       <NavBar />
@@ -244,8 +234,8 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} /> {/* NEW */}
-          <Route path="/reset-password" element={<PasswordResetVerificationPage />} /> {/* NEW */}
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<PasswordResetVerificationPage />} />
           <Route path="/flats" element={<AllFlatsPage />} />
           <Route path="/flats/create" element={
             <PrivateRoute>

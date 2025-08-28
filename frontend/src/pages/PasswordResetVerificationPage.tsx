@@ -1,4 +1,4 @@
-// frontend/src/pages/PasswordResetVerificationPage.tsx (NEW)
+// frontend/src/pages/PasswordResetVerificationPage.tsx
 import React, { useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { verifyPasswordResetCode as verifyApi, setNewPassword as setPasswordApi } from '@/services/api';
@@ -47,11 +47,10 @@ const PasswordResetVerificationPage: React.FC = () => {
       const response = await verifyApi(resetToken, code);
       toast.success(response.data.message);
       setIsCodeVerified(true);
-      setPasswordChangeToken(response.data.passwordChangeToken);
+      setPasswordChangeToken(response.data.data.passwordChangeToken);
     } catch (err: any) {
       console.error('Code verification error:', err);
-      const errorMessage = err.response?.data?.message || 'Failed to verify code.';
-      toast.error(errorMessage);
+      toast.error(err.message || 'Failed to verify code.');
     } finally {
       setIsVerifying(false);
     }
@@ -81,8 +80,7 @@ const PasswordResetVerificationPage: React.FC = () => {
       }, 2000);
     } catch (err: any) {
       console.error('Set new password error:', err);
-      const errorMessage = err.response?.data?.message || 'Failed to set new password.';
-      toast.error(errorMessage);
+      toast.error(err.message || 'Failed to set new password.');
     } finally {
       setIsChangingPassword(false);
     }
@@ -100,7 +98,6 @@ const PasswordResetVerificationPage: React.FC = () => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {/* Step 1: Verify the code */}
         {!isCodeVerified && (
           <form onSubmit={handleVerifyCode} className="space-y-4">
             <div>
@@ -131,7 +128,6 @@ const PasswordResetVerificationPage: React.FC = () => {
           </form>
         )}
 
-        {/* Step 2: Set a new password */}
         {isCodeVerified && (
           <form onSubmit={handleSetNewPassword} className="space-y-4">
             <div>

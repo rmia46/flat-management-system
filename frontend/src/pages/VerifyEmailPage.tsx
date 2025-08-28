@@ -1,5 +1,5 @@
 // frontend/src/pages/VerifyEmailPage.tsx
-import React, { useState, useEffect, useRef } from 'react'; // NEW: Import useRef
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { verifyEmail, resendVerificationCode } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -31,7 +31,7 @@ const VerifyEmailPage: React.FC = () => {
   const [resending, setResending] = useState(false);
   const [message, setMessage] = useState('');
 
-  const hasResentRef = useRef(false); // NEW: Ref to prevent multiple automatic resends
+  const hasResentRef = useRef(false);
 
   useEffect(() => {
     if (isAuthenticated && user?.verified) {
@@ -39,17 +39,14 @@ const VerifyEmailPage: React.FC = () => {
       return;
     }
 
-    // Scenario 1: No email available at all -> redirect to registration
     if (!registeredEmail) {
         navigate('/register', { replace: true });
         toast.info('Please register to receive a verification code.');
         return;
     }
 
-    // Scenario 2: Email is available, but no token (coming from unverified login)
-    // Automatically resend code if no token and haven't tried to resend yet
     if (registeredEmail && !currentVerificationToken && !hasResentRef.current) {
-        hasResentRef.current = true; // Mark that we've attempted an automatic resend
+        hasResentRef.current = true;
         const autoResend = async () => {
             setResending(true);
             setMessage('');
@@ -57,19 +54,18 @@ const VerifyEmailPage: React.FC = () => {
                 const res = await resendVerificationCode(registeredEmail);
                 toast.success(res.data.message);
                 setMessage(res.data.message);
-                setCurrentVerificationToken(res.data.verificationToken);
+                setCurrentVerificationToken(res.data.data.verificationToken);
             } catch (err: any) {
                 console.error('Error auto-resending code:', err);
-                const errorMessage = err.response?.data?.message || 'Failed to auto-resend code.';
-                toast.error(errorMessage);
-                setMessage(errorMessage);
+                toast.error(err.message || 'Failed to auto-resend code.');
+                setMessage(err.message);
             } finally {
                 setResending(false);
             }
         };
         autoResend();
     }
-  }, [isAuthenticated, user, navigate, registeredEmail, currentVerificationToken]); // MODIFIED dependencies
+  }, [isAuthenticated, user, navigate, registeredEmail, currentVerificationToken]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,8 +83,8 @@ const VerifyEmailPage: React.FC = () => {
       toast.success(res.data.message);
       setMessage(res.data.message);
 
-      if (res.data.token && res.data.user) {
-        setAuthData(res.data.token, res.data.user);
+      if (res.data.data.token && res.data.data.user) {
+        setAuthData(res.data.data.token, res.data.data.user);
         navigate('/dashboard', { replace: true });
       } else {
         navigate('/login', { replace: true });
@@ -96,9 +92,8 @@ const VerifyEmailPage: React.FC = () => {
 
     } catch (err: any) {
       console.error('Email verification failed:', err);
-      const errorMessage = err.response?.data?.message || 'Failed to verify email. Please try again.';
-      toast.error(errorMessage);
-      setMessage(errorMessage);
+      toast.error(err.message || 'Failed to verify email. Please try again.');
+      setMessage(err.message);
     } finally {
       setLoading(false);
     }
@@ -117,12 +112,11 @@ const VerifyEmailPage: React.FC = () => {
       const res = await resendVerificationCode(registeredEmail);
       toast.success(res.data.message);
       setMessage(res.data.message);
-      setCurrentVerificationToken(res.data.verificationToken);
+      setCurrentVerificationToken(res.data.data.verificationToken);
     } catch (err: any) {
       console.error('Error resending code:', err);
-      const errorMessage = err.response?.data?.message || 'Failed to resend code.';
-      toast.error(errorMessage);
-      setMessage(errorMessage);
+      toast.error(err.message || 'Failed to resend code.');
+      setMessage(err.message);
     } finally {
       setResending(false);
     }
@@ -184,14 +178,13 @@ const VerifyEmailPage: React.FC = () => {
           {message && <p className={`mt-4 text-center text-sm ${message.includes('successfully') ? 'text-green-600' : 'text-destructive'}`}>{message}</p>}
         </form>
 
-        {/* Resend Code Section - Always visible */}
         <div className="mt-6 border-t border-border pt-4 text-center">
           <p className="text-muted-foreground text-sm mb-3">
             Didn't receive a code or it expired?
           </p>
           <Button 
             onClick={handleResendCode} 
-            disabled={resending || loading} // Disable if already resending or verifying
+            disabled={resending || loading}
             variant="outline"
             className="w-full"
           >
@@ -205,7 +198,6 @@ const VerifyEmailPage: React.FC = () => {
             )}
           </Button>
         </div>
-        {/* End Resend Code Section */}
       </CardContent>
     </Card>
   );

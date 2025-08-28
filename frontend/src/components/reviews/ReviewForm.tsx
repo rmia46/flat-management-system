@@ -81,6 +81,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ booking, existingReview, onRevi
       bookingId: booking.id,
       flatId: booking.flat.id,
       comment,
+      ratingGiven: parseFloat(String(overallRating)),
     };
 
     if (isTenantReviewing) {
@@ -100,7 +101,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ booking, existingReview, onRevi
       toast.success(existingReview ? 'Review updated successfully!' : 'Review submitted successfully!');
       onReviewSubmitted();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to submit review.');
+      toast.error(err.message || 'Failed to submit review.');
     } finally {
       setLoading(false);
     }
@@ -108,7 +109,6 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ booking, existingReview, onRevi
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* --- Criteria Section --- */}
       <div className="space-y-2 rounded-md border p-4">
         {isTenantReviewing ? (
           <>
@@ -125,13 +125,11 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ booking, existingReview, onRevi
         )}
       </div>
 
-      {/* --- Overall Rating Display --- */}
       <div className="flex justify-between items-center rounded-md border bg-muted/50 p-4">
         <h4 className="font-semibold">Overall Rating</h4>
         <p className="text-2xl font-bold text-primary">{overallRating}</p>
       </div>
 
-      {/* --- Comment Section --- */}
       <div>
         <label htmlFor="comment" className="text-sm font-medium mb-2 block">Your Comments (Optional)</label>
         <Textarea

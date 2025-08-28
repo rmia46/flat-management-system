@@ -35,6 +35,8 @@ interface Flat {
   images?: Image[];
   [key: string]: any;
 }
+
+// **FIX**: Added the missing props interface for this component
 interface FlatCardProps {
   flat: Flat;
   showActions?: boolean;
@@ -70,7 +72,7 @@ const FlatCard: React.FC<FlatCardProps> = ({ flat, showActions = false, onFlatDe
       toast.success(`Flat status updated to ${statusValue}.`);
       onStatusChange?.();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to update status.');
+      toast.error(error.message || 'Failed to update status.');
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -88,7 +90,7 @@ const FlatCard: React.FC<FlatCardProps> = ({ flat, showActions = false, onFlatDe
       toast.success(`Flat deleted successfully.`);
       if (onFlatDeleted) onFlatDeleted(selectedFlatId);
     } catch (error: any) {
-      toast.error(error.response?.data?.message || `Failed to delete flat.`);
+      toast.error(error.message || `Failed to delete flat.`);
     } finally {
       setIsDeleting(false);
       setIsDeleteDialogOpen(false);

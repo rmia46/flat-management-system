@@ -1,5 +1,5 @@
 // frontend/src/services/api.ts
-import axios from 'axios';
+import axios, { AxiosResponse } from 'axios';
 
 const API_BASE_URL = import.meta.env.PROD
   ? window.location.origin + '/api'
@@ -21,14 +21,23 @@ export const setAuthToken = (token: string | null) => {
 };
 
 api.interceptors.response.use(
-  (response) => response,
+  (response: AxiosResponse) => {
+    // ALWAYS return the full response object for consistency.
+    // Components will now be responsible for accessing `response.data`.
+    return response;
+  },
   (error) => {
-    if (error.response?.status === 401) {
-      console.log("Interceptor: 401 Unauthorized received. Propagating error.");
-    }
-    return Promise.reject(error);
+    // Extract a user-friendly error message from the backend's structured error response.
+    const errorMessage = error.response?.data?.message || error.message || 'An unexpected error occurred.';
+    
+    // Create a new error object with the custom message and attach the original response
+    const customError: any = new Error(errorMessage);
+    customError.response = error.response;
+    
+    return Promise.reject(customError);
   }
 );
+
 
 // --- Authentication API Calls ---
 export const register = (userData: any) => api.post('/auth/register', userData);
@@ -92,9 +101,9 @@ export const getTenantBookings = () => api.get('/bookings/tenant');
 export const approveBooking = (bookingId: number) => api.put(`/bookings/${bookingId}/approve`);
 export const disapproveBooking = (bookingId: number) => api.put(`/bookings/${bookingId}/disapprove`);
 export const cancelBooking = (bookingId: number) => api.delete(`/bookings/${bookingId}`);
-export const confirmPayment = (bookingId: number) => api.put(`/bookings/${bookingId}/confirm-payment`); // Existing, but now part of the new flow
+export const confirmPayment = (bookingId: number) => api.put(`/bookings/${bookingId}/confirm-payment`);
 
-// NEW: Extension API Calls
+// Extension API Calls
 export const requestExtension = (bookingId: number, newEndDate: Date) => api.post(`/bookings/${bookingId}/extensions`, { newEndDate });
 export const approveExtension = (extensionId: number) => api.put(`/bookings/extensions/${extensionId}/approve`);
 export const rejectExtension = (extensionId: number) => api.put(`/bookings/extensions/${extensionId}/reject`);

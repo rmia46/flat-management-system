@@ -36,6 +36,7 @@ const HomePage: React.FC = () => {
 
       {/* Centered Content */}
       <div className="relative z-20 flex flex-col items-center space-y-6 text-white max-w-2xl">
+        
         <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-shadow">
           Find Your Next Home
         </h1>

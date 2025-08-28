@@ -32,7 +32,6 @@ const DashboardPage: React.FC = () => {
   const [selectedBookingId, setSelectedBookingId] = useState<number | null>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
 
-  // NEW: State for the review dialog
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
   const [reviewTargetBooking, setReviewTargetBooking] = useState<any | null>(null);
 
@@ -44,14 +43,14 @@ const DashboardPage: React.FC = () => {
     try {
       if (user.userType === 'owner') {
         const [flatsRes, bookingsRes] = await Promise.all([getOwnerFlats(), getOwnerBookings()]);
-        setOwnerFlats(flatsRes.data);
-        setOwnerBookings(bookingsRes.data);
+        setOwnerFlats(flatsRes.data.data.flats);
+        setOwnerBookings(bookingsRes.data.data.bookings);
       } else if (user.userType === 'tenant') {
         const res = await getTenantBookings();
-        setTenantBookings(res.data);
+        setTenantBookings(res.data.data.bookings);
       }
     } catch (err: any) {
-      toast.error('Failed to load dashboard data.');
+      toast.error(err.message || 'Failed to load dashboard data.');
     } finally {
       setLoading(false);
     }
@@ -61,7 +60,6 @@ const DashboardPage: React.FC = () => {
     fetchData();
   }, [fetchData, triggerRefresh]);
 
-  // Stats logic remains the same
   const ownerStats = useMemo(() => {
     if (user?.userType !== 'owner') return null;
     return {
@@ -85,7 +83,6 @@ const DashboardPage: React.FC = () => {
     setIsDetailsDialogOpen(true);
   };
 
-  // MODIFIED: Opens the dedicated review dialog
   const handleReviewClick = (e: React.MouseEvent, booking: any) => {
     e.stopPropagation();
     setReviewTargetBooking(booking);
@@ -106,7 +103,6 @@ const DashboardPage: React.FC = () => {
   return (
     <>
       <div className="w-full max-w-7xl mx-auto space-y-6">
-        {/* Header and Stat Cards... */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div><h1 className="text-3xl font-bold text-foreground">Welcome Back, {user?.firstName}!</h1><p className="text-muted-foreground">Here's your dashboard overview.</p></div>
           {user?.userType === 'owner' && (<Button asChild><Link to="/flats/create">+ List a New Flat</Link></Button>)}
@@ -192,7 +188,6 @@ const DashboardPage: React.FC = () => {
   );
 };
 
-// StatCard component remains the same
 interface StatCardProps { title: string; value: number | string; icon: React.ElementType; description?: string; link?: string; }
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, description, link }) => {
   const cardContent = (<CardContent className="flex flex-row items-center justify-between space-y-0 pb-2 pt-6"><div className="space-y-1"><h3 className="text-sm font-medium text-muted-foreground">{title}</h3><p className="text-2xl font-bold">{value}</p>{description && <p className="text-xs text-muted-foreground">{description}</p>}</div><Icon className="h-6 w-6 text-muted-foreground" /></CardContent>);

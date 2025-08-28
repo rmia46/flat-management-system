@@ -3,13 +3,32 @@ import React from 'react';
 import FlatCard from './FlatCard';
 import { motion } from 'framer-motion';
 
+// Interfaces for type safety
+interface Image {
+  id: number;
+  url: string;
+  isThumbnail: boolean;
+}
+
+interface Flat {
+  id: number;
+  address: string;
+  district: string | null;
+  monthlyRentalCost: number | null;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  status: string;
+  images?: Image[];
+  [key: string]: any;
+}
+
 interface FlatListProps {
-  flats: any[];
+  flats: Flat[];
   title: string;
   emptyMessage: string;
   showActions?: boolean;
   onFlatDeleted?: (flatId: number) => void;
-  onStatusChange?: () => void; // MODIFIED: Added the missing prop
+  onStatusChange?: () => void;
 }
 
 const containerVariants = {
@@ -22,7 +41,7 @@ const containerVariants = {
   },
 };
 
-const FlatList: React.FC<FlatListProps> = ({ flats, title, emptyMessage, showActions = false, onFlatDeleted, onStatusChange }) => { // MODIFIED: Destructure the new prop
+const FlatList: React.FC<FlatListProps> = ({ flats, title, emptyMessage, showActions = false, onFlatDeleted, onStatusChange }) => {
   return (
     <div className="w-full">
       <h2 className="text-3xl font-bold text-center text-foreground mb-8">{title}</h2>

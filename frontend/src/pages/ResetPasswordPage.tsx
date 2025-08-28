@@ -45,7 +45,7 @@ const PasswordResetVerificationPage: React.FC = () => {
 
     try {
       const response = await verifyApi(resetToken, code);
-      toast.success(response.data.message);
+      toast.success(response.message);
       setIsCodeVerified(true);
       setPasswordChangeToken(response.data.passwordChangeToken);
     } catch (err: any) {
@@ -75,7 +75,7 @@ const PasswordResetVerificationPage: React.FC = () => {
 
     try {
       const response = await setNewPasswordApi(passwordChangeToken, newPassword);
-      toast.success(response.data.message);
+      toast.success(response.message);
       setTimeout(() => {
         navigate('/login', { replace: true });
       }, 2000);

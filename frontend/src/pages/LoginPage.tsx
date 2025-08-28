@@ -12,38 +12,34 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { toast } from 'sonner';
-import { LoadingSpinner } from '@/components/common/LoadingSpinner'; // Assuming you have this import
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 
 const LoginPage: React.FC = () => {
   const { loginUser } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false); // Add loading state
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true); // Set loading to true on submit
+    setLoading(true);
     try {
-      const result = await loginUser({ email, password }); // Capture the result object
+      const result = await loginUser({ email, password });
 
       if (result.success) {
-        // Login successful, AuthContext already handles navigation to dashboard
-        // No explicit action needed here for successful login
+        // Successful login is handled by AuthContext, including navigation
       } else if (result.needsVerification && result.emailForVerification) {
-        // Account not verified, redirect to verification page
+        // If login fails because account is not verified, navigate to the verification page
         navigate('/verify-email', { state: { email: result.emailForVerification } });
       }
-
-      // If result.success is false and not needsVerification, an error toast
-      // has already been shown by AuthContext.
+      // Other error toasts are handled by the api service and AuthContext
     } catch (err) {
-      // This catch block might not be hit if AuthContext handles all rejections internally
-      // but it's good practice to have.
+      // This catch block is a fallback, but errors are primarily handled in the service/context layers
       console.error('Login page error:', err);
       toast.error('An unexpected error occurred during login.');
     } finally {
-      setLoading(false); // Set loading to false after attempt
+      setLoading(false);
     }
   };
 

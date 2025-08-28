@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"; 
 import { toast } from 'sonner'; 
-import { LoadingSpinner } from '@/components/common/LoadingSpinner'; // <-- NEW: Import LoadingSpinner
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 
 const RegisterPage: React.FC = () => {
   const { registerUser } = useAuth();
@@ -32,25 +32,25 @@ const RegisterPage: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [nid, setNid] = useState('');
   const [userType, setUserType] = useState('tenant');
-  const [loading, setLoading] = useState(false); // <-- NEW: Add loading state
-  const [error, setError] = useState(''); 
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setLoading(true); // <-- NEW: Set loading to true on submit
+    setLoading(true);
     try {
       const result = await registerUser({ firstName, lastName, email, password, phone, nid, userType });
       
-      if (result.success) {
+      if (result.success && result.userEmail && result.verificationToken) {
         toast.info('Registration successful! Please check your email for a verification code.');
         navigate('/verify-email', { state: { email: result.userEmail, verificationToken: result.verificationToken } }); 
       }
+      // Error toasts are handled by the AuthContext
     } catch (err: any) {
+      // Fallback error handling
       console.error('Registration page error:', err);
       toast.error(err.message || 'Registration failed.');
     } finally {
-      setLoading(false); // <-- NEW: Set loading to false after attempt
+      setLoading(false);
     }
   };
 
@@ -153,8 +153,8 @@ const RegisterPage: React.FC = () => {
             </Select>
           </div>
           <div className="flex items-center justify-between">
-            <Button type="submit" className="transition-colors duration-200 transform hover:scale-[1.02]" disabled={loading}> {/* NEW: Disable button while loading */}
-              {loading ? ( // <-- NEW: Conditional rendering for spinner
+            <Button type="submit" className="transition-colors duration-200 transform hover:scale-[1.02]" disabled={loading}>
+              {loading ? (
                 <>
                   <LoadingSpinner className="mr-2" size={16} />
                   Registering...

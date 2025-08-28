@@ -13,8 +13,30 @@ import { motion, Variants } from 'framer-motion';
 import ReviewCard from '../reviews/ReviewCard';
 
 // Interfaces...
-interface Review { id: number; ratingGiven: number; comment: string | null; dateSubmitted: string; reviewerId: number; reviewer: { firstName: string; lastName: string; }; }
-interface FlatDetails { id: number; address: string; district?: string | null; monthlyRentalCost: number | null; bedrooms?: number | null; bathrooms?: number | null; description?: string | null; status: string; ownerId: number; owner?: { id: number; firstName: string; lastName: string; email?: string | null; }; images?: { id: number; url: string; isThumbnail: boolean }[]; amenities?: { amenity: { id: number; name: string; } }[]; bookings?: any[]; reviews?: Review[]; }
+interface Review {
+  id: number;
+  ratingGiven: number;
+  comment: string | null;
+  dateSubmitted: string;
+  reviewerId: number;
+  reviewer: { firstName: string; lastName: string; };
+}
+interface FlatDetails {
+  id: number;
+  address: string;
+  district?: string | null;
+  monthlyRentalCost: number | null;
+  bedrooms?: number | null;
+  bathrooms?: number | null;
+  description?: string | null;
+  status: string;
+  ownerId: number;
+  owner?: { id: number; firstName: string; lastName: string; email?: string | null; };
+  images?: { id: number; url: string; isThumbnail: boolean }[];
+  amenities?: { amenity: { id: number; name: string; } }[];
+  bookings?: any[];
+  reviews?: Review[];
+}
 interface FlatDetailsDialogProps { flatId: number | null; bookingId?: number | null; isOpen: boolean; onClose: () => void; onActionComplete?: () => void; }
 
 const contentVariants: Variants = {
@@ -37,9 +59,9 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, bookingId
     setLoading(true); setError('');
     try {
       const response = await getFlatById(flatId);
-      setFlatDetails(response.data);
+      setFlatDetails(response.data.data.flat);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load flat details.');
+      setError(err.message || 'Failed to load flat details.');
     } finally { setLoading(false); }
   }, [flatId]);
 
@@ -49,7 +71,6 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, bookingId
     }
   }, [isOpen, flatId, triggerRefresh, fetchDetails]);
 
-  // ... (handleApiAction and handleBookingSubmit remain the same)
   const handleApiAction = async (action: () => Promise<any>, successMessage: string, errorMessage: string) => {
     setIsActionLoading(true);
     try {
@@ -58,7 +79,7 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, bookingId
       onActionComplete?.();
       onClose();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || errorMessage);
+      toast.error(err.message || errorMessage);
     } finally {
       setIsActionLoading(false);
     }

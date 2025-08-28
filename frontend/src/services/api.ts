@@ -99,3 +99,7 @@ export const requestExtension = (bookingId: number, newEndDate: Date) => api.pos
 export const approveExtension = (extensionId: number) => api.put(`/bookings/extensions/${extensionId}/approve`);
 export const rejectExtension = (extensionId: number) => api.put(`/bookings/extensions/${extensionId}/reject`);
 export const confirmExtensionPayment = (extensionId: number) => api.put(`/bookings/extensions/${extensionId}/confirm-payment`);
+
+// --- Review API Calls ---
+export const getReviewsForFlat = (flatId: number) => api.get(`/reviews/${flatId}`);
+export const createReview = (flatId: number, reviewData: { ratingGiven: number; comment: string }) => api.post(`/reviews/${flatId}`, reviewData);

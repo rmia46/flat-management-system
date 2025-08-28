@@ -1,9 +1,10 @@
 // frontend/src/pages/DashboardPage.tsx
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getOwnerFlats, getTenantBookings, getOwnerBookings } from '../services/api'; // MODIFIED: Added getOwnerBookings
+import { getOwnerFlats, getTenantBookings, getOwnerBookings } from '../services/api';
 import FlatList from '../components/flats/FlatList';
 import FlatDetailsDialog from '../components/flats/FlatDetailsDialog';
+import ReviewDialog from '../components/reviews/ReviewDialogue'; 
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -11,32 +12,39 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
-import { Home, Bookmark, Building2, BellRing } from 'lucide-react';
+import { Home, Bookmark, Building2, BellRing, Star, Wrench } from 'lucide-react';
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 const DashboardPage: React.FC = () => {
-  const { user, triggerRefresh, triggerRefresh: refreshTrigger } = useAuth();
+  const { user, triggerRefresh } = useAuth();
   const [ownerFlats, setOwnerFlats] = useState<any[]>([]);
   const [tenantBookings, setTenantBookings] = useState<any[]>([]);
-  const [ownerBookings, setOwnerBookings] = useState<any[]>([]); // NEW: State for owner's bookings
+  const [ownerBookings, setOwnerBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // State for the main details dialog
   const [selectedFlatId, setSelectedFlatId] = useState<number | null>(null);
   const [selectedBookingId, setSelectedBookingId] = useState<number | null>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+
+  // NEW: State for the review dialog
+  const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
+  const [reviewTarget, setReviewTarget] = useState<{ flatId: number; flatAddress: string; } | null>(null);
+
+  const [devTimeTravel, setDevTimeTravel] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
       if (user.userType === 'owner') {
-        // MODIFIED: Fetch both flats and bookings at the same time
-        const [flatsRes, bookingsRes] = await Promise.all([
-          getOwnerFlats(),
-          getOwnerBookings()
-        ]);
+        const [flatsRes, bookingsRes] = await Promise.all([getOwnerFlats(), getOwnerBookings()]);
         setOwnerFlats(flatsRes.data);
         setOwnerBookings(bookingsRes.data);
       } else if (user.userType === 'tenant') {
@@ -52,16 +60,16 @@ const DashboardPage: React.FC = () => {
 
   useEffect(() => {
     fetchData();
-  }, [fetchData, refreshTrigger]);
+  }, [fetchData, triggerRefresh]);
 
+  // Stats logic remains the same
   const ownerStats = useMemo(() => {
     if (user?.userType !== 'owner') return null;
     const totalListings = ownerFlats.length;
     const occupiedFlats = ownerFlats.filter(flat => flat.status === 'booked').length;
-    // FIXED: Calculate new requests from the separate ownerBookings state
     const newRequests = ownerBookings.filter(b => b.status === 'pending').length;
     return { totalListings, occupiedFlats, newRequests };
-  }, [ownerFlats, ownerBookings, user]); // MODIFIED: Added ownerBookings dependency
+  }, [ownerFlats, ownerBookings, user]);
 
   const tenantStats = useMemo(() => {
     if (user?.userType !== 'tenant') return null;
@@ -70,18 +78,24 @@ const DashboardPage: React.FC = () => {
     return { activeBookings, pendingBookings };
   }, [tenantBookings, user]);
 
-
   const handleCardClick = (flatId: number, bookingId: number) => {
     setSelectedFlatId(flatId);
     setSelectedBookingId(bookingId);
     setIsDetailsDialogOpen(true);
   };
+
+  // MODIFIED: This now opens the dedicated review dialog
+  const handleReviewClick = (e: React.MouseEvent, flatId: number, flatAddress: string) => {
+    e.stopPropagation();
+    setReviewTarget({ flatId, flatAddress });
+    setIsReviewDialogOpen(true);
+  };
   
-  const handleDialogClose = () => {
+  const handleDetailsDialogClose = () => {
     setIsDetailsDialogOpen(false);
     setSelectedFlatId(null);
     setSelectedBookingId(null);
-    triggerRefresh();
+    fetchData();
   };
 
   if (loading) {
@@ -91,18 +105,11 @@ const DashboardPage: React.FC = () => {
   return (
     <>
       <div className="w-full max-w-7xl mx-auto space-y-6">
+        {/* Header and Stat Cards... */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Welcome Back, {user?.firstName}!</h1>
-            <p className="text-muted-foreground">Here's your dashboard overview for today.</p>
-          </div>
-          {user?.userType === 'owner' && (
-            <Button asChild>
-              <Link to="/flats/create">+ List a New Flat</Link>
-            </Button>
-          )}
+          <div><h1 className="text-3xl font-bold text-foreground">Welcome Back, {user?.firstName}!</h1><p className="text-muted-foreground">Here's your dashboard overview for today.</p></div>
+          {user?.userType === 'owner' && (<Button asChild><Link to="/flats/create">+ List a New Flat</Link></Button>)}
         </div>
-
         {user?.userType === 'owner' && ownerStats && (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <StatCard icon={Building2} title="Total Listings" value={ownerStats.totalListings} />
@@ -117,10 +124,22 @@ const DashboardPage: React.FC = () => {
           </div>
         )}
 
+        {/* FIXED: Developer Tools Panel logic */}
+        {import.meta.env.DEV && user && (
+          <Card className="border-primary/50">
+            <CardHeader><CardTitle className="flex items-center gap-2 text-primary"><Wrench size={20} /> Developer Tools</CardTitle></CardHeader>
+            <CardContent>
+              <div className="flex items-center space-x-2">
+                <Switch id="time-travel-mode" checked={devTimeTravel} onCheckedChange={setDevTimeTravel} />
+                <Label htmlFor="time-travel-mode">Enable "Time Travel" Mode</Label>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">This treats active bookings as completed, allowing you to test the review system.</p>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
-          <CardHeader>
-            <CardTitle>{user?.userType === 'owner' ? 'Your Listed Flats' : 'Your Booked Flats'}</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle>{user?.userType === 'owner' ? 'Your Listed Flats' : 'Your Bookings'}</CardTitle></CardHeader>
           <CardContent>
             {user?.userType === 'owner' && (
               ownerFlats.length > 0 ? (
@@ -130,15 +149,22 @@ const DashboardPage: React.FC = () => {
             {user?.userType === 'tenant' && (
               tenantBookings.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {tenantBookings.map((booking: any) => (
-                    <Card key={booking.id} className="cursor-pointer hover:shadow-lg" onClick={() => handleCardClick(booking.flat.id, booking.id)}>
-                      <CardHeader><CardTitle>{booking.flat.address}</CardTitle></CardHeader>
-                      <CardContent>
-                        <p><strong>Status:</strong> <span className={`font-semibold ${booking.status === 'active' ? 'text-green-600' : 'text-yellow-600'}`}>{booking.status}</span></p>
-                        <p><strong>Dates:</strong> {new Date(booking.startDate).toLocaleDateString()} - {new Date(booking.endDate).toLocaleDateString()}</p>
-                      </CardContent>
-                    </Card>
-                  ))}
+                  {tenantBookings.map((booking: any) => {
+                    const isCompleted = devTimeTravel || new Date(booking.endDate) < new Date();
+                    return (
+                      <Card key={booking.id} className="cursor-pointer hover:shadow-lg flex flex-col" onClick={() => handleCardClick(booking.flat.id, booking.id)}>
+                        <CardHeader><CardTitle>{booking.flat.address}</CardTitle><CardDescription>{isCompleted ? 'Booking Completed' : `Status: ${booking.status}`}</CardDescription></CardHeader>
+                        <CardContent className="flex-grow"><p><strong>Dates:</strong> {new Date(booking.startDate).toLocaleDateString()} - {new Date(booking.endDate).toLocaleDateString()}</p></CardContent>
+                        <CardFooter>
+                          {isCompleted && (
+                            <Button variant="outline" className="h-8 px-3 rounded-full border-primary text-primary hover:bg-primary/10 hover:text-primary w-full" onClick={(e) => handleReviewClick(e, booking.flat.id, booking.flat.address)}>
+                              <Star size={14} className="mr-2" /> Leave a Review
+                            </Button>
+                          )}
+                        </CardFooter>
+                      </Card>
+                    );
+                  })}
                 </div>
               ) : <p className="text-muted-foreground">You haven't booked any flats yet.</p>
             )}
@@ -150,38 +176,27 @@ const DashboardPage: React.FC = () => {
         flatId={selectedFlatId}
         bookingId={selectedBookingId}
         isOpen={isDetailsDialogOpen}
-        onClose={handleDialogClose}
+        onClose={handleDetailsDialogClose}
         onActionComplete={fetchData}
+      />
+      
+      {/* NEW: Render the ReviewDialog */}
+      <ReviewDialog
+        isOpen={isReviewDialogOpen}
+        onClose={() => setIsReviewDialogOpen(false)}
+        flatId={reviewTarget?.flatId || null}
+        flatAddress={reviewTarget?.flatAddress || null}
+        onReviewSubmitted={fetchData}
       />
     </>
   );
 };
 
-interface StatCardProps {
-  title: string;
-  value: number | string;
-  icon: React.ElementType;
-  description?: string;
-  link?: string;
-}
-
+// StatCard component remains the same
+interface StatCardProps { title: string; value: number | string; icon: React.ElementType; description?: string; link?: string; }
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, description, link }) => {
-  const cardContent = (
-    <CardContent className="flex flex-row items-center justify-between space-y-0 pb-2 pt-6">
-      <div className="space-y-1">
-        <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
-        <p className="text-2xl font-bold">{value}</p>
-        {description && <p className="text-xs text-muted-foreground">{description}</p>}
-      </div>
-      <Icon className="h-6 w-6 text-muted-foreground" />
-    </CardContent>
-  );
-
-  return (
-    <Card>
-      {link ? <Link to={link} className="block hover:bg-muted/50 rounded-lg">{cardContent}</Link> : <div className="p-0">{cardContent}</div>}
-    </Card>
-  );
+  const cardContent = (<CardContent className="flex flex-row items-center justify-between space-y-0 pb-2 pt-6"><div className="space-y-1"><h3 className="text-sm font-medium text-muted-foreground">{title}</h3><p className="text-2xl font-bold">{value}</p>{description && <p className="text-xs text-muted-foreground">{description}</p>}</div><Icon className="h-6 w-6 text-muted-foreground" /></CardContent>);
+  return (<Card>{link ? <Link to={link} className="block hover:bg-muted/50 rounded-lg">{cardContent}</Link> : <div className="p-0">{cardContent}</div>}</Card>);
 };
 
 export default DashboardPage;

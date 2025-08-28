@@ -1,105 +1,21 @@
 // frontend/src/components/flats/FlatDetailsDialog.tsx
-import React, { useState, useEffect } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from '@/services/api';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
-import {
-  getFlatById,
-  createBooking,
-  cancelBooking,
-  approveBooking,
-  disapproveBooking,
-  confirmPayment,
-  requestExtension,
-  approveExtension,
-  rejectExtension,
-  confirmExtensionPayment,
-} from '@/services/api';
+import { getFlatById, createBooking, cancelBooking, approveBooking, disapproveBooking, confirmPayment, requestExtension, approveExtension, rejectExtension, confirmExtensionPayment } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { motion, Variants } from 'framer-motion';
+import ReviewCard from '../reviews/ReviewCard';
 
-// --- Interfaces ---
-interface FlatDetails {
-  id: number;
-  flatNumber?: string | null;
-  floor?: number | null;
-  houseName?: string | null;
-  houseNumber?: string | null;
-  address: string;
-  district?: string | null;
-  latitude?: number | null;
-  longitude?: number | null;
-  monthlyRentalCost: number | null;
-  utilityCost?: number | null;
-  bedrooms?: number | null;
-  bathrooms?: number | null;
-  balcony?: boolean | null;
-  minimumStay?: number | null;
-  description?: string | null;
-  status: string;
-  rating?: number | null;
-  ownerId: number;
-  owner?: { id: number; firstName: string; lastName: string; email?: string | null; phone?: string | null; nid?: string | null; };
-  images?: { id: number; url: string; isThumbnail: boolean }[];
-  amenities?: { amenity: { id: number; name: string; description: string | null } }[];
-  bookings?: BookingDetail[];
-}
-interface BookingDetail {
-  id: number;
-  userId: number;
-  flatId: number;
-  startDate: string;
-  endDate: string;
-  status: string;
-  autoRenewEnabled: boolean;
-  requestedAt: string;
-  approvedAt?: string | null;
-  cancelledAt?: string | null;
-  payments: PaymentDetail[];
-  extensions: ExtensionDetail[];
-  // MODIFIED: Added user object to the booking detail
-  user?: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone?: string;
-    nid?: string;
-  };
-}
-interface PaymentDetail {
-  id: number;
-  bookingId: number;
-  amount: number;
-  datePaid: string;
-  transactionId?: string | null;
-  paymentMethod?: string | null;
-  status: string;
-}
-interface ExtensionDetail {
-  id: number;
-  bookingId: number;
-  newStartDate: string;
-  newEndDate: string;
-  status: string;
-  requestedAt: string;
-}
-interface FlatDetailsDialogProps {
-  flatId: number | null;
-  bookingId?: number | null;
-  isOpen: boolean;
-  onClose: () => void;
-  onActionComplete?: () => void;
-}
+// Interfaces...
+interface Review { id: number; ratingGiven: number; comment: string | null; dateSubmitted: string; reviewerId: number; reviewer: { firstName: string; lastName: string; }; }
+interface FlatDetails { id: number; address: string; district?: string | null; monthlyRentalCost: number | null; bedrooms?: number | null; bathrooms?: number | null; description?: string | null; status: string; ownerId: number; owner?: { id: number; firstName: string; lastName: string; email?: string | null; }; images?: { id: number; url: string; isThumbnail: boolean }[]; amenities?: { amenity: { id: number; name: string; } }[]; bookings?: any[]; reviews?: Review[]; }
+interface FlatDetailsDialogProps { flatId: number | null; bookingId?: number | null; isOpen: boolean; onClose: () => void; onActionComplete?: () => void; }
 
 const contentVariants: Variants = {
   hidden: { opacity: 0, y: 10 },
@@ -116,22 +32,24 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, bookingId
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isActionLoading, setIsActionLoading] = useState(false);
 
-  useEffect(() => {
-    if (!flatId || !isOpen) {
-      setFlatDetails(null); setLoading(false); setError(''); return;
-    }
-    const fetchDetails = async () => {
-      setLoading(true); setError('');
-      try {
-        const response = await getFlatById(flatId);
-        setFlatDetails(response.data);
-      } catch (err: any) {
-        setError(err.response?.data?.message || 'Failed to load flat details.');
-      } finally { setLoading(false); }
-    };
-    fetchDetails();
-  }, [flatId, isOpen, triggerRefresh]);
+  const fetchDetails = useCallback(async () => {
+    if (!flatId) return;
+    setLoading(true); setError('');
+    try {
+      const response = await getFlatById(flatId);
+      setFlatDetails(response.data);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to load flat details.');
+    } finally { setLoading(false); }
+  }, [flatId]);
 
+  useEffect(() => {
+    if (isOpen) {
+      fetchDetails();
+    }
+  }, [isOpen, flatId, triggerRefresh, fetchDetails]);
+
+  // ... (handleApiAction and handleBookingSubmit remain the same)
   const handleApiAction = async (action: () => Promise<any>, successMessage: string, errorMessage: string) => {
     setIsActionLoading(true);
     try {
@@ -145,7 +63,6 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, bookingId
       setIsActionLoading(false);
     }
   };
-
   const handleBookingSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!flatId) return;
@@ -163,9 +80,10 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, bookingId
 
     return (
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="media">Photos & Amenities</TabsTrigger>
+          <TabsTrigger value="reviews">Reviews</TabsTrigger>
           {isAuthenticated && <TabsTrigger value="booking">Booking</TabsTrigger>}
         </TabsList>
 
@@ -204,6 +122,18 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, bookingId
             {flatDetails.amenities && flatDetails.amenities.length > 0 && (
               <div><h4 className="font-semibold mb-2">Amenities</h4><div className="flex flex-wrap gap-2">{flatDetails.amenities.map(a => (<span key={a.amenity.id} className="bg-secondary text-secondary-foreground py-1 px-3 rounded-full text-xs font-medium">{a.amenity.name}</span>))}</div></div>
             )}
+          </TabsContent>
+
+          <TabsContent value="reviews">
+            <div className="space-y-4">
+              {flatDetails.reviews && flatDetails.reviews.length > 0 ? (
+                flatDetails.reviews.map(review => (
+                  <ReviewCard key={review.id} review={review} />
+                ))
+              ) : (
+                <p className="text-muted-foreground text-sm text-center pt-4">No reviews yet for this property.</p>
+              )}
+            </div>
           </TabsContent>
 
           <TabsContent value="booking">
@@ -245,6 +175,7 @@ const FlatDetailsDialog: React.FC<FlatDetailsDialogProps> = ({ flatId, bookingId
   );
 };
 
+// BookingActions component remains the same
 const BookingActions = ({ booking, isOwner, userType, isActionLoading, handleApiAction, extensionNewEndDate, setExtensionNewEndDate }: any) => {
   const latestExtension = booking.extensions?.sort((a: any, b: any) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime())[0];
 
@@ -271,7 +202,6 @@ const BookingActions = ({ booking, isOwner, userType, isActionLoading, handleApi
       <div className="border-t pt-4">
         <h4 className="font-semibold mb-2">Actions</h4>
         <div className="flex flex-wrap gap-2">
-          {/* --- Tenant Actions --- */}
           {userType === 'tenant' && (
             <>
               {booking.status === 'approved' && (
@@ -298,7 +228,6 @@ const BookingActions = ({ booking, isOwner, userType, isActionLoading, handleApi
             </>
           )}
 
-          {/* --- Owner Actions --- */}
           {isOwner && (
             <>
               {booking.status === 'pending' && (
@@ -311,7 +240,6 @@ const BookingActions = ({ booking, isOwner, userType, isActionLoading, handleApi
                   </Button>
                 </>
               )}
-              {/* NEW: Added cancel button for owner when booking is awaiting payment */}
               {booking.status === 'approved' && (
                 <Button variant="destructive" onClick={() => handleApiAction(() => disapproveBooking(booking.id), 'Booking cancelled.', 'Failed to cancel booking.')} disabled={isActionLoading}>
                   {isActionLoading ? <LoadingSpinner size={16}/> : 'Cancel Booking'}

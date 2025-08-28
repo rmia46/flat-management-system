@@ -267,7 +267,6 @@ export const getFlatById = async (req: Request, res: Response) => {
     const isOwnerOfFlat = userId && flatAuthCheck.ownerId === userId && userType === 'owner';
     const isAuthenticatedUser = !!userId;
 
-    // MODIFIED: Define the booking where clause once
     const relevantBookingWhereClause = {
       status: {
         in: ['pending', 'approved', 'active']
@@ -283,23 +282,18 @@ export const getFlatById = async (req: Request, res: Response) => {
           owner: true,
           images: true,
           amenities: { include: { amenity: true } },
-          bookings: {
-            where: { 
-              flatId: parseInt(id),
-              ...relevantBookingWhereClause // Apply filter
+          reviews: {
+            include: {
+              reviewer: { select: { firstName: true, lastName: true } }
             },
+            orderBy: { dateSubmitted: 'desc' }
+          },
+          bookings: {
+            where: { flatId: parseInt(id), ...relevantBookingWhereClause },
             include: { 
               payments: true, 
               extensions: true, 
-              user: {
-                select: {
-                  firstName: true,
-                  lastName: true,
-                  email: true,
-                  phone: true,
-                  nid: true,
-                }
-              } 
+              user: { select: { firstName: true, lastName: true, email: true, phone: true, nid: true } } 
             },
             orderBy: { createdAt: 'desc' },
             take: 1,
@@ -310,55 +304,35 @@ export const getFlatById = async (req: Request, res: Response) => {
       queryOptions = {
         where: { id: parseInt(id) },
         select: {
-          id: true,
-          houseName: true,
-          address: true,
-          district: true, 
-          latitude: true,
-          longitude: true,
-          monthlyRentalCost: true,
-          utilityCost: isAuthenticatedUser,
-          bedrooms: true,
-          bathrooms: true,
-          minimumStay: true,
-          description: true,
-          status: true,
-          rating: true,
-          createdAt: true,
-          updatedAt: true,
-          ownerId: true,
-          flatNumber: isOwnerOfFlat as boolean,
-          floor: isOwnerOfFlat as boolean,
-          houseNumber: isOwnerOfFlat as boolean,
+          id: true, houseName: true, address: true, district: true, latitude: true, longitude: true,
+          monthlyRentalCost: true, utilityCost: isAuthenticatedUser, bedrooms: true, bathrooms: true,
+          minimumStay: true, description: true, status: true, rating: true, createdAt: true,
+          updatedAt: true, ownerId: true,
+          // FIXED: Explicitly cast to boolean to satisfy TypeScript
+          flatNumber: !!isOwnerOfFlat,
+          floor: !!isOwnerOfFlat,
+          houseNumber: !!isOwnerOfFlat,
           owner: {
             select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              email: isAuthenticatedUser,
-              phone: isOwnerOfFlat ? true : false,
-              nid: isOwnerOfFlat ? true : false,
+              id: true, firstName: true, lastName: true, email: isAuthenticatedUser,
+              // FIXED: Explicitly cast to boolean
+              phone: !!isOwnerOfFlat,
+              nid: !!isOwnerOfFlat,
             },
           },
           images: { select: { id: true, url: true, isThumbnail: true } },
           amenities: { select: { amenity: { select: { id: true, name: true, description: true } } } },
-          bookings: {
-            where: { 
-              userId: userId || -1,
-              ...relevantBookingWhereClause // Apply filter
+          reviews: {
+            include: {
+              reviewer: { select: { firstName: true, lastName: true } }
             },
+            orderBy: { dateSubmitted: 'desc' }
+          },
+          bookings: {
+            where: { userId: userId || -1, ...relevantBookingWhereClause },
             include: { 
-              payments: true, 
-              extensions: true,
-              user: {
-                select: {
-                  firstName: true,
-                  lastName: true,
-                  email: true,
-                  phone: true,
-                  nid: true,
-                }
-              }
+              payments: true, extensions: true,
+              user: { select: { firstName: true, lastName: true, email: true, phone: true, nid: true } }
             },
             orderBy: { createdAt: 'desc' },
             take: 1,
@@ -379,7 +353,6 @@ export const getFlatById = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Server error fetching flat details.' });
   }
 };
-
 // --- Delete a Flat (Owner only) ---
 export const deleteFlat = async (req: Request, res: Response) => {
   const { id } = req.params;

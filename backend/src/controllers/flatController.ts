@@ -12,6 +12,47 @@ declare module 'express' {
   }
 }
 
+// Utility function to update statuses
+const updateCompletedBookings = async () => {
+  try {
+    const now = new Date();
+    const completedBookings = await prisma.booking.findMany({
+      where: {
+        status: 'active',
+        endDate: {
+          lt: now,
+        },
+      },
+      select: {
+        id: true,
+        flatId: true,
+      },
+    });
+
+    if (completedBookings.length > 0) {
+      const bookingIds = completedBookings.map(b => b.id);
+      const flatIds = completedBookings.map(b => b.flatId);
+
+      // Use a transaction to ensure both updates succeed
+      await prisma.$transaction([
+        // Set booking status to 'completed'
+        prisma.booking.updateMany({
+          where: { id: { in: bookingIds } },
+          data: { status: 'completed' },
+        }),
+        // Set flat status to 'available'
+        prisma.flat.updateMany({
+          where: { id: { in: flatIds } },
+          data: { status: 'available' },
+        }),
+      ]);
+      console.log(`Updated ${completedBookings.length} bookings to completed status.`);
+    }
+  } catch (error) {
+    console.error("Error updating completed bookings:", error);
+  }
+};
+
 // --- Create a new Flat listing (Owner only) ---
 export const createFlat = async (req: Request, res: Response) => {
   if (!req.user || req.user.userType !== 'owner') {
@@ -228,6 +269,8 @@ export const getAllFlats = async (req: Request, res: Response) => {
 
 // --- Get Flats for Authenticated Owner (Owner only) ---
 export const getOwnerFlats = async (req: Request, res: Response) => {
+  await updateCompletedBookings();
+
   if (!req.user || req.user.userType !== 'owner') {
     return res.status(403).json({ message: 'Not authorized. Only owners can view their flats.' });
   }
@@ -490,6 +533,8 @@ export const createBooking = async (req: Request, res: Response) => {
 
 // --- Get All Booking Requests for an Owner ---
 export const getOwnerBookings = async (req: Request, res: Response) => {
+  await updateCompletedBookings();
+
   const ownerId = req.user?.id;
 
   if (!ownerId || req.user?.userType !== 'owner') {
@@ -623,6 +668,8 @@ export const disapproveBooking = async (req: Request, res: Response) => {
 
 // --- Get All Bookings for a Tenant ---
 export const getTenantBookings = async (req: Request, res: Response) => {
+  await updateCompletedBookings();
+
   const tenantId = req.user?.id;
 
   if (!tenantId || req.user?.userType !== 'tenant') {
@@ -995,4 +1042,43 @@ export const confirmExtensionPayment = async (req: Request, res: Response) => {
         console.error('Error confirming extension payment:', error);
         res.status(500).json({ message: 'Server error during extension payment confirmation.' });
     }
+};
+// --- NEW: Controller for Manual Status Update ---
+export const updateFlatStatus = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  const userId = req.user?.id;
+
+  if (!userId || req.user?.userType !== 'owner') {
+    return res.status(403).json({ message: 'Not authorized.' });
+  }
+  if (status !== 'available' && status !== 'unavailable') {
+    return res.status(400).json({ message: 'Invalid status provided.' });
+  }
+
+  try {
+    const flat = await prisma.flat.findUnique({
+      where: { id: parseInt(id) },
+      include: { bookings: { where: { status: { in: ['pending', 'approved', 'active'] } } } }
+    });
+
+    if (!flat) {
+      return res.status(404).json({ message: 'Flat not found.' });
+    }
+    if (flat.ownerId !== userId) {
+      return res.status(403).json({ message: 'You do not own this flat.' });
+    }
+    if (flat.bookings.length > 0) {
+      return res.status(400).json({ message: 'Cannot change status while flat has active or pending bookings.' });
+    }
+
+    const updatedFlat = await prisma.flat.update({
+      where: { id: parseInt(id) },
+      data: { status },
+    });
+
+    res.status(200).json(updatedFlat);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error updating flat status.' });
+  }
 };

@@ -143,7 +143,7 @@ const DashboardPage: React.FC = () => {
           <CardContent>
             {user?.userType === 'owner' && (
               ownerFlats.length > 0 ? (
-                <FlatList flats={ownerFlats} title="" emptyMessage="" showActions={true} onFlatDeleted={fetchData} />
+                <FlatList flats={ownerFlats} title="" emptyMessage="" showActions={true} onFlatDeleted={fetchData} onStatusChange={fetchData}/>
               ) : <p className="text-muted-foreground">You haven't listed any flats yet.</p>
             )}
             {user?.userType === 'tenant' && (

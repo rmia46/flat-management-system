@@ -2,7 +2,7 @@
 import { Router } from 'express';
 import {
   createFlat, getAllFlats, getOwnerFlats, getFlatById, deleteFlat, updateFlat, getAllAmenities,
-  createBooking,
+  createBooking, updateFlatStatus
 } from '../controllers/flatController';
 import { protect, authorize } from '../middlewares/authMiddleware';
 import upload from '../multerConfig';
@@ -20,7 +20,7 @@ router.get('/owner', protect, authorize('owner'), getOwnerFlats);
 router.get('/amenities', getAllAmenities);
 router.get('/:id', protect, getFlatById);
 router.delete('/:id', protect, authorize('owner'), deleteFlat);
-
+router.put('/:id/status', protect, authorize('owner'), updateFlatStatus);
 // MODIFIED: Also update the PUT route for editing flats
 router.put('/:id', protect, authorize('owner'), upload.array('images', 10), updateFlat);
 

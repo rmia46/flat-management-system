@@ -103,3 +103,6 @@ export const confirmExtensionPayment = (extensionId: number) => api.put(`/bookin
 // --- Review API Calls ---
 export const getReviewsForFlat = (flatId: number) => api.get(`/reviews/${flatId}`);
 export const upsertReview = (reviewData: any) => api.post(`/reviews`, reviewData);
+
+// Function to update a flat's availability status
+export const updateFlatStatus = (id: number, status: 'available' | 'unavailable') => api.put(`/flats/${id}/status`, { status });

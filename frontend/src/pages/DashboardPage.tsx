@@ -28,14 +28,13 @@ const DashboardPage: React.FC = () => {
   const [ownerBookings, setOwnerBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // State for the main details dialog
   const [selectedFlatId, setSelectedFlatId] = useState<number | null>(null);
   const [selectedBookingId, setSelectedBookingId] = useState<number | null>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
 
   // NEW: State for the review dialog
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
-  const [reviewTarget, setReviewTarget] = useState<{ flatId: number; flatAddress: string; } | null>(null);
+  const [reviewTargetBooking, setReviewTargetBooking] = useState<any | null>(null);
 
   const [devTimeTravel, setDevTimeTravel] = useState(false);
 
@@ -52,7 +51,7 @@ const DashboardPage: React.FC = () => {
         setTenantBookings(res.data);
       }
     } catch (err: any) {
-      toast.error('Failed to load dashboard data. Please try again.');
+      toast.error('Failed to load dashboard data.');
     } finally {
       setLoading(false);
     }
@@ -65,17 +64,19 @@ const DashboardPage: React.FC = () => {
   // Stats logic remains the same
   const ownerStats = useMemo(() => {
     if (user?.userType !== 'owner') return null;
-    const totalListings = ownerFlats.length;
-    const occupiedFlats = ownerFlats.filter(flat => flat.status === 'booked').length;
-    const newRequests = ownerBookings.filter(b => b.status === 'pending').length;
-    return { totalListings, occupiedFlats, newRequests };
+    return {
+      totalListings: ownerFlats.length,
+      occupiedFlats: ownerFlats.filter(flat => flat.status === 'booked').length,
+      newRequests: ownerBookings.filter(b => b.status === 'pending').length,
+    };
   }, [ownerFlats, ownerBookings, user]);
 
   const tenantStats = useMemo(() => {
     if (user?.userType !== 'tenant') return null;
-    const activeBookings = tenantBookings.filter(b => b.status === 'active').length;
-    const pendingBookings = tenantBookings.filter(b => b.status === 'pending' || b.status === 'approved').length;
-    return { activeBookings, pendingBookings };
+    return {
+      activeBookings: tenantBookings.filter(b => b.status === 'active').length,
+      pendingBookings: tenantBookings.filter(b => b.status === 'pending' || b.status === 'approved').length,
+    };
   }, [tenantBookings, user]);
 
   const handleCardClick = (flatId: number, bookingId: number) => {
@@ -84,10 +85,10 @@ const DashboardPage: React.FC = () => {
     setIsDetailsDialogOpen(true);
   };
 
-  // MODIFIED: This now opens the dedicated review dialog
-  const handleReviewClick = (e: React.MouseEvent, flatId: number, flatAddress: string) => {
+  // MODIFIED: Opens the dedicated review dialog
+  const handleReviewClick = (e: React.MouseEvent, booking: any) => {
     e.stopPropagation();
-    setReviewTarget({ flatId, flatAddress });
+    setReviewTargetBooking(booking);
     setIsReviewDialogOpen(true);
   };
   
@@ -107,7 +108,7 @@ const DashboardPage: React.FC = () => {
       <div className="w-full max-w-7xl mx-auto space-y-6">
         {/* Header and Stat Cards... */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div><h1 className="text-3xl font-bold text-foreground">Welcome Back, {user?.firstName}!</h1><p className="text-muted-foreground">Here's your dashboard overview for today.</p></div>
+          <div><h1 className="text-3xl font-bold text-foreground">Welcome Back, {user?.firstName}!</h1><p className="text-muted-foreground">Here's your dashboard overview.</p></div>
           {user?.userType === 'owner' && (<Button asChild><Link to="/flats/create">+ List a New Flat</Link></Button>)}
         </div>
         {user?.userType === 'owner' && ownerStats && (
@@ -124,7 +125,6 @@ const DashboardPage: React.FC = () => {
           </div>
         )}
 
-        {/* FIXED: Developer Tools Panel logic */}
         {import.meta.env.DEV && user && (
           <Card className="border-primary/50">
             <CardHeader><CardTitle className="flex items-center gap-2 text-primary"><Wrench size={20} /> Developer Tools</CardTitle></CardHeader>
@@ -151,14 +151,15 @@ const DashboardPage: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {tenantBookings.map((booking: any) => {
                     const isCompleted = devTimeTravel || new Date(booking.endDate) < new Date();
+                    const hasReview = !!booking.review;
                     return (
                       <Card key={booking.id} className="cursor-pointer hover:shadow-lg flex flex-col" onClick={() => handleCardClick(booking.flat.id, booking.id)}>
                         <CardHeader><CardTitle>{booking.flat.address}</CardTitle><CardDescription>{isCompleted ? 'Booking Completed' : `Status: ${booking.status}`}</CardDescription></CardHeader>
                         <CardContent className="flex-grow"><p><strong>Dates:</strong> {new Date(booking.startDate).toLocaleDateString()} - {new Date(booking.endDate).toLocaleDateString()}</p></CardContent>
                         <CardFooter>
                           {isCompleted && (
-                            <Button variant="outline" className="h-8 px-3 rounded-full border-primary text-primary hover:bg-primary/10 hover:text-primary w-full" onClick={(e) => handleReviewClick(e, booking.flat.id, booking.flat.address)}>
-                              <Star size={14} className="mr-2" /> Leave a Review
+                            <Button variant="outline" className="h-8 px-3 rounded-full border-primary text-primary hover:bg-primary/10 hover:text-primary w-full" onClick={(e) => handleReviewClick(e, booking)}>
+                              <Star size={14} className="mr-2" /> {hasReview ? 'Edit Your Review' : 'Leave a Review'}
                             </Button>
                           )}
                         </CardFooter>
@@ -180,12 +181,11 @@ const DashboardPage: React.FC = () => {
         onActionComplete={fetchData}
       />
       
-      {/* NEW: Render the ReviewDialog */}
       <ReviewDialog
         isOpen={isReviewDialogOpen}
         onClose={() => setIsReviewDialogOpen(false)}
-        flatId={reviewTarget?.flatId || null}
-        flatAddress={reviewTarget?.flatAddress || null}
+        booking={reviewTargetBooking}
+        existingReview={reviewTargetBooking?.review}
         onReviewSubmitted={fetchData}
       />
     </>

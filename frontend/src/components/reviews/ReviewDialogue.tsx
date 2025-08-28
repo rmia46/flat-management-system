@@ -10,33 +10,35 @@ import {
 import ReviewForm from './ReviewForm';
 
 interface ReviewDialogProps {
-  flatId: number | null;
-  flatAddress: string | null;
+  booking: any | null;
+  existingReview?: any | null;
   isOpen: boolean;
   onClose: () => void;
   onReviewSubmitted: () => void;
 }
 
 const ReviewDialog: React.FC<ReviewDialogProps> = ({
-  flatId,
-  flatAddress,
+  booking,
+  existingReview,
   isOpen,
   onClose,
   onReviewSubmitted
 }) => {
-  if (!flatId) return null;
+  if (!booking) return null;
+
+  const title = existingReview ? 'Edit Your Review' : 'Leave a Review';
+  const description = `You are reviewing the booking for the flat at: ${booking.flat.address}`;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Leave a Review</DialogTitle>
-          <DialogDescription>
-            You are reviewing the flat at: {flatAddress}
-          </DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <ReviewForm
-          flatId={flatId}
+          booking={booking}
+          existingReview={existingReview}
           onReviewSubmitted={() => {
             onReviewSubmitted();
             onClose(); // Close the dialog after submission

@@ -102,4 +102,4 @@ export const confirmExtensionPayment = (extensionId: number) => api.put(`/bookin
 
 // --- Review API Calls ---
 export const getReviewsForFlat = (flatId: number) => api.get(`/reviews/${flatId}`);
-export const createReview = (flatId: number, reviewData: { ratingGiven: number; comment: string }) => api.post(`/reviews/${flatId}`, reviewData);
+export const upsertReview = (reviewData: any) => api.post(`/reviews`, reviewData);

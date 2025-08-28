@@ -27,7 +27,9 @@ model User {
 
   flats        Flat[]     // Relation: One User (owner) can have many Flats
   bookings     Booking[]  // Relation: One User (tenant) can have many Bookings
-  reviews      Review[]   // Relation: One User can give many Reviews
+
+  reviewsWritten  Review[] @relation("ReviewsWritten")
+  reviewsReceived Review[] @relation("ReviewsReceived")
 
   createdAt    DateTime   @default(now()) @map("CreatedAt")
   updatedAt    DateTime   @updatedAt @map("UpdatedAt")
@@ -106,6 +108,8 @@ model Booking {
   createdAt        DateTime  @default(now()) @map("CreatedAt")
   updatedAt        DateTime  @updatedAt @map("UpdatedAt")
 
+  review           Review?
+
   @@map("Booking")
 }
 
@@ -144,15 +148,30 @@ model Payment {
 
 model Review {
   id            Int      @id @default(autoincrement()) @map("ReviewID")
-  flatId        Int      @map("FlatID") // Foreign Key to Flat
-  reviewerId    Int      @map("ReviewerID") // Foreign Key to User (who wrote the review)
-  reviewerRole  String?  @map("ReviewerRole") // e.g., 'tenant', 'owner'
-  ratingGiven   Int      @map("RatingGiven") @db.Int // INT CHECK (RatingGiven BETWEEN 1 AND 5) - validation handled in app logic
-  comment       String?
-  dateSubmitted DateTime @map("Date") // Maps to Date
+  flatId        Int      @map("FlatID") // The flat being reviewed
+  reviewerId    Int      @map("ReviewerID") // The user writing the review
+  reviewedUserId Int?     @map("ReviewedUserID") // The user being reviewed (e.g., the tenant)
+  bookingId     Int?     @unique @map("BookingID") // The specific booking this review is for
 
-  flat          Flat     @relation(fields: [flatId], references: [id])
-  reviewer      User     @relation(fields: [reviewerId], references: [id])
+  ratingGiven   Decimal  @map("RatingGiven") @db.Decimal(3, 2) // The overall calculated average
+  comment       String?  @db.Text
+  dateSubmitted DateTime @map("Date")
+
+  // --- Tenant's criteria for the Flat/Owner ---
+  flatQuality   Int?
+  hygiene       Int?
+  location      Int?
+  ownerBehavior Int?
+  
+  // --- Owner's criteria for the Tenant ---
+  tenantBehavior Int?
+  cooperation    Int?
+
+  // Relations
+  flat          Flat     @relation(fields: [flatId], references: [id], onDelete: Cascade)
+  reviewer      User     @relation("ReviewsWritten", fields: [reviewerId], references: [id], onDelete: Cascade)
+  reviewedUser  User?    @relation("ReviewsReceived", fields: [reviewedUserId], references: [id], onDelete: SetNull)
+  booking       Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
 
   createdAt     DateTime @default(now()) @map("CreatedAt")
   updatedAt     DateTime @updatedAt @map("UpdatedAt")

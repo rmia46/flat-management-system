@@ -1,14 +1,14 @@
 // backend/src/routes/reviewRoutes.ts
 import { Router } from 'express';
-import { createReview, getReviewsForFlat } from '../controllers/reviewController';
-import { protect, authorize } from '../middlewares/authMiddleware';
+import { upsertReview, getReviewsForFlat } from '../controllers/reviewController';
+import { protect } from '../middlewares/authMiddleware';
 
 const router = Router();
 
 // Route to get all reviews for a specific flat (public)
 router.get('/:flatId', getReviewsForFlat);
 
-// Route to create a new review for a flat (only authenticated users)
-router.post('/:flatId', protect, createReview);
+// Route to create or update a review (only authenticated users)
+router.post('/', protect, upsertReview);
 
 export default router;

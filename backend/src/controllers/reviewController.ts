@@ -1,83 +1,120 @@
 // backend/src/controllers/reviewController.ts
 import { Request, Response } from 'express';
 import prisma from '../db';
+import { Decimal } from '@prisma/client/runtime/library';
 
-// --- Create a Review ---
-export const createReview = async (req: Request, res: Response) => {
-  const { flatId } = req.params;
-  const { ratingGiven, comment } = req.body;
+// --- Create or Update a Review ---
+export const upsertReview = async (req: Request, res: Response) => {
+  const { bookingId, flatId, reviewedUserId, comment, ...criteria } = req.body;
   const reviewerId = req.user?.id;
-  const reviewerRole = req.user?.userType;
 
-  if (!reviewerId || !reviewerRole) {
+  if (!reviewerId) {
     return res.status(401).json({ message: 'Not authenticated.' });
   }
-
-  if (!ratingGiven || ratingGiven < 1 || ratingGiven > 5) {
-    return res.status(400).json({ message: 'A rating between 1 and 5 is required.' });
+  if (!bookingId || !flatId) {
+    return res.status(400).json({ message: 'Booking ID and Flat ID are required.' });
   }
 
   try {
-    // --- Validation: Check if the user is eligible to review ---
-    // For a tenant to review a flat, they must have a past booking.
-    if (reviewerRole === 'tenant') {
-      const validBooking = await prisma.booking.findFirst({
-        where: {
-          userId: reviewerId,
-          flatId: parseInt(flatId),
-          // Check for bookings that have ended
-          endDate: {
-            lt: new Date(),
-          },
-          status: 'active', // Or 'expired' if you add that status
-        },
-      });
-
-      if (!validBooking) {
-        return res.status(403).json({ message: 'You can only review flats after your booking is complete.' });
-      }
-    }
-    // (Future enhancement: Add logic for owners to review tenants)
-
-    // --- Create the review and update the flat's average rating ---
-    const [newReview] = await prisma.$transaction(async (tx) => {
-      const review = await tx.review.create({
-        data: {
-          flatId: parseInt(flatId),
-          reviewerId,
-          reviewerRole,
-          ratingGiven,
-          comment,
-          dateSubmitted: new Date(),
-        },
-      });
-
-      // Recalculate the average rating for the flat
-      const aggregateRatings = await tx.review.aggregate({
-        _avg: {
-          ratingGiven: true,
-        },
-        where: {
-          flatId: parseInt(flatId),
-        },
-      });
-
-      const newAverageRating = aggregateRatings._avg.ratingGiven;
-
-      await tx.flat.update({
-        where: { id: parseInt(flatId) },
-        data: { rating: newAverageRating },
-      });
-
-      return [review];
+    // --- Eligibility Check ---
+    const booking = await prisma.booking.findUnique({
+      where: { id: parseInt(bookingId) },
+      include: { flat: true },
     });
 
-    res.status(201).json({ message: 'Review submitted successfully.', review: newReview });
+    if (!booking) {
+      return res.status(404).json({ message: 'Associated booking not found.' });
+    }
+    
+    // FIXED: Use findFirst to avoid the strict type issue with findUnique on a nullable unique field.
+    const existingReview = await prisma.review.findUnique({
+        where: { bookingId: parseInt(bookingId) }
+    });
+
+    const isTenantOfBooking = booking.userId === reviewerId;
+    const isOwnerOfFlat = booking.flat.ownerId === reviewerId;
+
+    if (!isTenantOfBooking && !isOwnerOfFlat) {
+      return res.status(403).json({ message: 'You are not authorized to review this booking.' });
+    }
+    
+    // --- Data Preparation & Calculation ---
+    let reviewData: any = {
+      comment,
+      flatId: parseInt(flatId),
+      reviewerId,
+      bookingId: parseInt(bookingId),
+      dateSubmitted: new Date(),
+    };
+    let totalRating = 0;
+    let criteriaCount = 0;
+
+    if (isTenantOfBooking) {
+      reviewData.reviewedUserId = booking.flat.ownerId;
+      const tenantCriteria = ['flatQuality', 'hygiene', 'location', 'ownerBehavior'];
+      tenantCriteria.forEach(key => {
+        if (criteria[key] !== undefined) {
+          const rating = parseInt(criteria[key]);
+          reviewData[key] = rating;
+          totalRating += rating;
+          criteriaCount++;
+        }
+      });
+    } else if (isOwnerOfFlat) {
+      reviewData.reviewedUserId = booking.userId;
+      const ownerCriteria = ['tenantBehavior', 'cooperation'];
+      ownerCriteria.forEach(key => {
+        if (criteria[key] !== undefined) {
+          const rating = parseInt(criteria[key]);
+          reviewData[key] = rating;
+          totalRating += rating;
+          criteriaCount++;
+        }
+      });
+    }
+
+    if (criteriaCount === 0) {
+      return res.status(400).json({ message: 'At least one rating criterion is required.' });
+    }
+
+    reviewData.ratingGiven = new Decimal(totalRating / criteriaCount);
+
+    // --- Upsert Logic ---
+    let savedReview;
+    if (existingReview) {
+      if (existingReview.reviewerId !== reviewerId) {
+        return res.status(403).json({ message: 'You are not authorized to edit this review.' });
+      }
+      savedReview = await prisma.review.update({
+        where: { id: existingReview.id },
+        data: reviewData,
+      });
+    } else {
+      savedReview = await prisma.review.create({
+        data: reviewData,
+      });
+    }
+
+    // Recalculate the flat's average rating
+    const aggregateRatings = await prisma.review.aggregate({
+      _avg: { ratingGiven: true },
+      where: { flatId: parseInt(flatId) },
+    });
+    const newAverageRating = aggregateRatings._avg.ratingGiven;
+    
+    await prisma.flat.update({
+      where: { id: parseInt(flatId) },
+      data: { rating: newAverageRating },
+    });
+
+    res.status(201).json({ message: existingReview ? 'Review updated successfully.' : 'Review submitted successfully.', review: savedReview });
+
   } catch (error) {
-    console.error('Error creating review:', error);
+    console.error('Error upserting review:', error);
     res.status(500).json({ message: 'Server error while submitting review.' });
   }
 };
+
 
 // --- Get Reviews for a Flat ---
 export const getReviewsForFlat = async (req: Request, res: Response) => {
@@ -89,7 +126,6 @@ export const getReviewsForFlat = async (req: Request, res: Response) => {
         flatId: parseInt(flatId),
       },
       include: {
-        // Include the reviewer's name with the review
         reviewer: {
           select: {
             firstName: true,

@@ -153,7 +153,7 @@ const DashboardPage: React.FC = () => {
               tenantBookings.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {tenantBookings.map((booking: any) => {
-                    const isCompleted = devTimeTravel || new Date(booking.endDate) < new Date();
+                    const isCompleted = devTimeTravel || new Date(booking.endDate).setHours(23, 59, 59, 999) < new Date().getTime();
                     const hasReview = !!booking.review;
                     return (
                       <Card key={booking.id} className="cursor-pointer hover:shadow-lg flex flex-col" onClick={() => handleCardClick(booking.flat.id, booking.id)}>

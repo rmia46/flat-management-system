@@ -160,6 +160,7 @@ export const getTenantBookings = async (tenantId: number) => {
             flat: { select: { id: true, address: true, houseName: true, owner: { select: { firstName: true, lastName: true } } } },
             payments: true,
             extensions: true,
+            review: true, // <-- Add this line
         },
         orderBy: {
             createdAt: 'desc',

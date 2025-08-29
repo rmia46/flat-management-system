@@ -27,9 +27,19 @@ export const upsertReview = catchAsync(async (req: Request, res: Response, next:
     return next(new AppError('Associated booking not found.', 404));
   }
 
+  // ADD THIS CHECK: Prevent reviews for cancelled bookings
+  if (booking.status === 'cancelled') {
+    return next(new AppError('Cannot review a cancelled booking.', 400));
+  }
+
   const existingReview = await prisma.review.findUnique({
       where: { bookingId: parseInt(bookingId) }
   });
+
+  // ADD THIS CHECK: Prevent creating a new review if one already exists for this booking
+  if (existingReview && !req.body.reviewId) { // Assuming reviewId would be present for an update
+    return next(new AppError('A review already exists for this booking. You can edit the existing one.', 400));
+  }
 
   const isTenantOfBooking = booking.userId === reviewerId;
   const isOwnerOfFlat = booking.flat.ownerId === reviewerId;
@@ -86,7 +96,7 @@ export const upsertReview = catchAsync(async (req: Request, res: Response, next:
       return next(new AppError('You are not authorized to edit this review.', 403));
     }
     savedReview = await prisma.review.update({
-      where: { id: existingReview.id },
+      where: { id: existingReview.id }, // Use existingReview.id for update
       data: reviewData,
     });
   } else {

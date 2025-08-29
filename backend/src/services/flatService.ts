@@ -3,6 +3,12 @@ import prisma from '../db';
 import { Prisma } from '@prisma/client';
 import AppError from '../utils/appError';
 
+const startOfToday = () => {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  return now;
+};
+
 export const createFlat = async (data: any, ownerId: number, files: Express.Multer.File[]) => {
   const {
     flatNumber, floor, houseName, houseNumber, address, district, latitude, longitude,
@@ -128,7 +134,7 @@ export const getOwnerFlats = async (ownerId: number) => {
     // Dynamically update flat status based on booking expiry
     const updatedFlats = await Promise.all(flats.map(async flat => {
         const latestBooking = flat.bookings[0];
-        if (latestBooking && latestBooking.status === 'active' && latestBooking.endDate < new Date()) {
+        if (latestBooking && latestBooking.status === 'active' && latestBooking.endDate < startOfToday()) {
             // Booking has expired, update flat status to available and booking status to expired
             await prisma.$transaction([
                 prisma.flat.update({
@@ -244,7 +250,7 @@ export const getFlatById = async (flatId: number, userId?: number, userType?: st
 
     // Dynamically update flat status based on booking expiry for this specific flat
     const activeBooking = flatWithBookings.bookings?.find((b: any) => b.status === 'active');
-    if (activeBooking && activeBooking.endDate < new Date()) {
+    if (activeBooking && activeBooking.endDate < startOfToday()) {
         await prisma.$transaction([
             prisma.flat.update({
                 where: { id: flatWithBookings.id },

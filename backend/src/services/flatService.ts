@@ -111,14 +111,41 @@ export const updateFlat = async (flatId: number, data: any, userId: number, file
 };
 
 export const getOwnerFlats = async (ownerId: number) => {
-    const ownerFlats = await prisma.flat.findMany({
-        where: { ownerId: ownerId },
+    const flats = await prisma.flat.findMany({
+        where: { ownerId },
         include: {
             images: { select: { id: true, url: true, isThumbnail: true } },
             amenities: { include: { amenity: true } },
+            bookings: {
+                where: { status: { in: ['pending', 'approved', 'active'] } },
+                orderBy: { endDate: 'desc' },
+                take: 1, // Get the most recent active/pending/approved booking
+            },
         },
+        orderBy: { createdAt: 'desc' },
     });
-    return ownerFlats;
+
+    // Dynamically update flat status based on booking expiry
+    const updatedFlats = await Promise.all(flats.map(async flat => {
+        const latestBooking = flat.bookings[0];
+        if (latestBooking && latestBooking.status === 'active' && latestBooking.endDate < new Date()) {
+            // Booking has expired, update flat status to available and booking status to expired
+            await prisma.$transaction([
+                prisma.flat.update({
+                    where: { id: flat.id },
+                    data: { status: 'available' },
+                }),
+                prisma.booking.update({
+                    where: { id: latestBooking.id },
+                    data: { status: 'expired' },
+                }),
+            ]);
+            return { ...flat, status: 'available', bookings: [{ ...latestBooking, status: 'expired' }] }; // Return updated flat and booking
+        }
+        return flat;
+    }));
+
+    return updatedFlats;
 };
 
 export const getFlatById = async (flatId: number, userId?: number, userType?: string) => {
@@ -208,7 +235,35 @@ export const getFlatById = async (flatId: number, userId?: number, userType?: st
 
     const flatData = await prisma.flat.findUnique(queryOptions);
 
-    return flatData;
+    if (!flatData) {
+        return null;
+    }
+
+    // Cast flatData to any to bypass TypeScript type checking for bookings access
+    const flatWithBookings: any = flatData;
+
+    // Dynamically update flat status based on booking expiry for this specific flat
+    const activeBooking = flatWithBookings.bookings?.find((b: any) => b.status === 'active');
+    if (activeBooking && activeBooking.endDate < new Date()) {
+        await prisma.$transaction([
+            prisma.flat.update({
+                where: { id: flatWithBookings.id },
+                data: { status: 'available' },
+            }),
+            prisma.booking.update({
+                where: { id: activeBooking.id },
+                data: { status: 'expired' },
+            }),
+        ]);
+        // Update the flat object in memory before returning
+        return {
+            ...flatWithBookings,
+            status: 'available',
+            bookings: flatWithBookings.bookings?.map((b: any) => b.id === activeBooking.id ? { ...b, status: 'expired' } : b),
+        };
+    }
+
+    return flatWithBookings;
 };
 
 export const deleteFlat = async (flatId: number, userId: number) => {

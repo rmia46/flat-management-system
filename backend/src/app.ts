@@ -6,6 +6,7 @@ import flatRoutes from './routes/flatRoutes';
 import authRoutes from './routes/authRoutes';
 import bookingRoutes from './routes/bookingRoutes';
 import reviewRoutes from './routes/reviewRoutes'; // NEW: Import review routes
+import handleGlobalError from './middlewares/errorMiddleware';
 
 const app = express();
 
@@ -22,5 +23,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/flats', flatRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/reviews', reviewRoutes);
+
+// Global Error Handling Middleware
+app.use(handleGlobalError);
 
 export default app;

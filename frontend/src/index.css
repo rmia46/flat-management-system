@@ -1,0 +1,198 @@
+/* frontend/src/index.css */
+
+/* Remove Google Fonts Import */
+/* @import url('...'); */
+
+/* Tailwind CSS directives */
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Remove @theme {...} block */
+/* @theme { ... } */
+
+/* Keep @layer base for now, but ensure it's empty */
+@layer base {
+  body {
+    margin: 0;
+    /* Remove custom background-color, color, font-family, font-weight */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Keep focus styles for now, will be overridden by shadcn defaults */
+  :focus {
+    outline: 2px solid;
+    /* Generic for now */
+    outline-offset: 2px;
+  }
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  /* --- General --- */
+  --radius: 0.65rem;
+  --background: oklch(1 0 0);
+  /* White */
+  --foreground: oklch(0.25 0.03 265);
+  /* Dark Slate */
+
+  /* --- Cards, Popovers --- */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.25 0.03 265);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.25 0.03 265);
+
+  /* --- Primary / Accent (Pistachio Green) --- */
+  --primary: oklch(0.70 0.16 145);
+  /* CHANGED: A slightly darker pistachio */
+  --primary-foreground: oklch(1 0 0);
+  /* White text for high contrast */
+
+  /* --- Secondary / Muted --- */
+  --secondary: oklch(0.97 0.01 265);
+  /* Light Gray */
+  --secondary-foreground: oklch(0.25 0.03 265);
+  /* Dark Slate */
+  --muted: oklch(0.97 0.01 265);
+  /* Light Gray */
+  --muted-foreground: oklch(0.55 0.02 265);
+  /* Medium Gray */
+
+  /* --- Hover / Accent --- */
+  --accent: oklch(0.95 0.05 145);
+  /* Very Light Pistachio for hovers */
+  --accent-foreground: oklch(0.22 0.04 145);
+  /* Darker green for text on accent */
+
+  /* --- Destructive --- */
+  --destructive: oklch(0.65 0.22 25);
+  /* Muted Red */
+  --destructive-foreground: oklch(0.98 0.01 25);
+  /* Light text on red */
+
+  /* --- Borders, Inputs, Rings --- */
+  --border: oklch(0.92 0.02 265);
+  /* Light Gray Border */
+  --input: oklch(0.92 0.02 265);
+  /* Light Gray Input BG */
+  --ring: oklch(0.70 0.16 145);
+  /* CHANGED: Darker pistachio for focus rings */
+
+  /* --- Chart Colors --- */
+  --chart-1: oklch(0.70 0.16 145);
+  /* CHANGED: Darker pistachio */
+  --chart-2: oklch(0.75 0.18 90);
+  /* Soft Yellow */
+  --chart-3: oklch(0.7 0.15 190);
+  /* Muted Teal */
+  --chart-4: oklch(0.75 0.2 50);
+  /* Gentle Orange */
+  --chart-5: oklch(0.7 0.17 240);
+  /* Soft Blue */
+}
+
+.dark {
+  /* --- General --- */
+  --background: oklch(0.12 0.02 265);
+  /* Dark Slate BG */
+  --foreground: oklch(0.95 0.01 265);
+  /* Light Gray Text */
+
+  /* --- Cards, Popovers --- */
+  --card: oklch(0.16 0.025 265);
+  /* Slightly lighter card BG */
+  --card-foreground: oklch(0.95 0.01 265);
+  --popover: oklch(0.16 0.025 265);
+  --popover-foreground: oklch(0.95 0.01 265);
+
+  /* --- Primary / Accent (Pistachio Green) --- */
+  --primary: oklch(0.70 0.16 145);
+  /* CHANGED: A slightly darker pistachio */
+  --primary-foreground: oklch(1 0 0);
+  /* White text for high contrast */
+
+  /* --- Secondary / Muted --- */
+  --secondary: oklch(0.22 0.03 265);
+  /* Dark Gray */
+  --secondary-foreground: oklch(0.95 0.01 265);
+  /* Light Gray Text */
+  --muted: oklch(0.22 0.03 265);
+  --muted-foreground: oklch(0.65 0.02 265);
+  /* Medium Gray */
+
+  /* --- Hover / Accent --- */
+  --accent: oklch(0.22 0.03 265);
+  --accent-foreground: oklch(0.95 0.01 265);
+
+  /* --- Destructive --- */
+  --destructive: oklch(0.65 0.22 25);
+  /* Muted Red */
+  --destructive-foreground: oklch(0.98 0.01 25);
+  /* Light text on red */
+
+  /* --- Borders, Inputs, Rings --- */
+  --border: oklch(0.25 0.03 265);
+  /* Lighter border for dark mode */
+  --input: oklch(0.25 0.03 265);
+  --ring: oklch(0.70 0.16 145);
+  /* CHANGED: Darker pistachio for focus rings */
+
+  /* --- Chart Colors (same as light, they pop well) --- */
+  --chart-1: oklch(0.70 0.16 145);
+  /* CHANGED: Darker pistachio */
+  --chart-2: oklch(0.75 0.18 90);
+  --chart-3: oklch(0.7 0.15 190);
+  --chart-4: oklch(0.75 0.2 50);
+  --chart-5: oklch(0.7 0.17 240);
+}
+
+
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}

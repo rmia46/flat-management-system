@@ -1,0 +1,216 @@
+// backend/prisma/schema.prisma
+
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL") // Ensure DATABASE_URL is correctly set in your backend/.env
+}
+
+
+model User {
+  id           Int        @id @default(autoincrement()) @map("UserID")
+  firstName    String     @map("FirstName")
+  lastName     String     @map("LastName")
+  email        String     @unique
+  passwordHash String     @map("PasswordHash") // Store hashed passwords
+  phone        String     @unique @map("Phone")
+  nid          String     @unique @map("NID")
+  verified     Boolean    @default(false) @map("Verified")
+  userType     String     @map("UserType") // 'tenant', 'owner', 'admin'
+
+
+  flats        Flat[]     // Relation: One User (owner) can have many Flats
+  bookings     Booking[]  // Relation: One User (tenant) can have many Bookings
+
+  reviewsWritten  Review[] @relation("ReviewsWritten")
+  reviewsReceived Review[] @relation("ReviewsReceived")
+
+  createdAt    DateTime   @default(now()) @map("CreatedAt")
+  updatedAt    DateTime   @updatedAt @map("UpdatedAt")
+
+  @@map("Users") // Maps this model to the 'Users' table in the database
+}
+
+model Flat {
+  id                Int         @id @default(autoincrement()) @map("FlatID")
+  ownerId           Int         @map("OwnerID") // Foreign Key to User (the owner)
+  flatNumber        String?     @map("FlatNumber")
+  floor             Int?
+  houseName         String?     @map("HouseName")
+  houseNumber       String?     @map("HouseNumber")
+  address           String      @map("Address")
+  district          String?     @map("District")
+  latitude          Float?       @map("Latitude") // For Google Maps
+  longitude         Float?       @map("Longitude") // For Google Maps
+  rating            Decimal?    @map("Rating") @db.Decimal(3,2) // DECIMAL(3,2) in MySQL
+  bedrooms          Int?
+  bathrooms         Int?
+  monthlyRentalCost Decimal     @map("MonthlyRentalCost") @db.Decimal(10,2)
+  utilityCost       Decimal?    @map("UtilityCost") @db.Decimal(10,2)
+  minimumStay       Int?        @map("MinimumStay") // Minimum months or days
+  description       String?     @db.Text 
+  status            String      @default("available") @map("Status") // 'available', 'booked', 'pending', 'unavailable'
+  // Consider adding a 'city' or 'district' for better search/filtering later
+
+  // Relations
+  owner             User        @relation(fields: [ownerId], references: [id])
+  advertisements    Advertisement[] // One Flat can have many Advertisements
+  images            Image[]     // One Flat can have many Images
+  amenities         FlatAmenity[] // Many-to-Many relationship with Amenities
+  bookings          Booking[]   // One Flat can have many Bookings
+  reviews           Review[]    // One Flat can have many Reviews
+
+  createdAt         DateTime    @default(now()) @map("CreatedAt")
+  updatedAt         DateTime    @updatedAt @map("UpdatedAt")
+
+  @@map("Flat") // Maps this model to the 'Flat' table in the database
+}
+
+model Advertisement {
+  id          Int      @id @default(autoincrement()) @map("AdID")
+  flatId      Int      @map("FlatID") // Foreign Key to Flat
+  title       String
+  description String?
+  datePosted  DateTime @map("DatePosted")
+  validityDays Int?    @map("Validity") // Renamed from Validity to ValidityDays for clarity
+
+  flat        Flat     @relation(fields: [flatId], references: [id])
+
+  createdAt   DateTime @default(now()) @map("CreatedAt")
+  updatedAt   DateTime @updatedAt @map("UpdatedAt")
+
+  @@map("Advertisement")
+}
+
+model Booking {
+  id               Int       @id @default(autoincrement()) @map("BookingID")
+  userId           Int       @map("UserID") // Foreign Key to Users (Tenant)
+  flatId           Int       @map("FlatID") // Foreign Key to Flat
+  startDate        DateTime  @map("StartDate")
+  endDate          DateTime  @map("EndDate")
+  status           String    @default("pending") @map("Status") // 'pending', 'approved', 'active', 'cancelled', 'expired'
+  autoRenewEnabled Boolean   @default(true) @map("IsRecurring") // For auto-renewal feature
+  requestedAt      DateTime  @default(now()) @map("DateCreated") // Maps to DateCreated
+  approvedAt       DateTime? // Nullable until approved
+  cancelledAt      DateTime? // Nullable if not cancelled
+
+  user             User      @relation(fields: [userId], references: [id])
+  flat             Flat      @relation(fields: [flatId], references: [id])
+  extensions       Extension[] // One Booking can have many Extensions
+  payments         Payment[]   // One Booking can have many Payments
+
+  createdAt        DateTime  @default(now()) @map("CreatedAt")
+  updatedAt        DateTime  @updatedAt @map("UpdatedAt")
+
+  review           Review?
+
+  @@map("Booking")
+}
+
+model Extension {
+  id          Int      @id @default(autoincrement()) @map("ExtensionID")
+  bookingId   Int      @map("BookingID") // Foreign Key to Booking
+  newStartDate DateTime @map("StartDate") // Renamed for clarity
+  newEndDate  DateTime @map("EndDate")   // Renamed for clarity
+  status      String   @default("pending") @map("ExtStatus") // 'pending', 'approved', 'rejected'
+  requestedAt DateTime @default(now()) @map("DateCreated") // Maps to DateCreated
+
+  booking     Booking  @relation(fields: [bookingId], references: [id])
+
+  createdAt   DateTime @default(now()) @map("CreatedAt")
+  updatedAt   DateTime @updatedAt @map("UpdatedAt")
+
+  @@map("Extension")
+}
+
+model Payment {
+  id            Int      @id @default(autoincrement()) @map("PaymentID")
+  bookingId     Int      @map("BookingID") // Foreign Key to Booking
+  amount        Decimal  @db.Decimal(10,2) // DECIMAL(10,2) in MySQL
+  datePaid      DateTime @map("DatePaid")
+  transactionId String?  @unique @map("TransactionID") // Transaction ID from payment gateway
+  paymentMethod String?  @map("PaymentMethod") // e.g., 'Credit Card', 'Bkash', 'Bank Transfer'
+  status        String   @default("completed") @map("PaymentStatus") // 'completed', 'pending', 'failed', 'refunded'
+
+  booking       Booking  @relation(fields: [bookingId], references: [id])
+
+  createdAt     DateTime @default(now()) @map("CreatedAt")
+  updatedAt     DateTime @updatedAt @map("UpdatedAt")
+
+  @@map("Payment")
+}
+
+model Review {
+  id            Int      @id @default(autoincrement()) @map("ReviewID")
+  flatId        Int      @map("FlatID") // The flat being reviewed
+  reviewerId    Int      @map("ReviewerID") // The user writing the review
+  reviewedUserId Int?     @map("ReviewedUserID") // The user being reviewed (e.g., the tenant)
+  bookingId     Int?     @unique @map("BookingID") // The specific booking this review is for
+
+  ratingGiven   Decimal  @map("RatingGiven") @db.Decimal(3, 2) // The overall calculated average
+  comment       String?  @db.Text
+  dateSubmitted DateTime @map("Date")
+
+  // --- Tenant's criteria for the Flat/Owner ---
+  flatQuality   Int?
+  hygiene       Int?
+  location      Int?
+  ownerBehavior Int?
+  
+  // --- Owner's criteria for the Tenant ---
+  tenantBehavior Int?
+  cooperation    Int?
+
+  // Relations
+  flat          Flat     @relation(fields: [flatId], references: [id], onDelete: Cascade)
+  reviewer      User     @relation("ReviewsWritten", fields: [reviewerId], references: [id], onDelete: Cascade)
+  reviewedUser  User?    @relation("ReviewsReceived", fields: [reviewedUserId], references: [id], onDelete: SetNull)
+  booking       Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  createdAt     DateTime @default(now()) @map("CreatedAt")
+  updatedAt     DateTime @updatedAt @map("UpdatedAt")
+
+  @@map("Review")
+}
+
+model Image {
+  id          Int      @id @default(autoincrement()) @map("ImageID")
+  flatId      Int      @map("FlatID") // Foreign Key to Flat
+  url         String   @map("URL") // URL of the image stored in cloud storage (e.g., Cloudinary)
+  isThumbnail Boolean  @default(false) @map("IsThumbnail") // True if this is the primary image for the flat
+  description String?
+
+  flat        Flat     @relation(fields: [flatId], references: [id])
+
+  createdAt   DateTime @default(now()) @map("CreatedAt")
+
+  @@map("Image")
+}
+
+model Amenity {
+  id          Int      @id @default(autoincrement()) @map("AmenityID")
+  name        String   @unique
+  description String?
+
+  flats       FlatAmenity[] // Many-to-Many relationship with Flats
+
+  @@map("Amenity")
+}
+
+model FlatAmenity {
+  flatId    Int     @map("FlatID")
+  amenityId Int     @map("AmenityID")
+
+  flat      Flat    @relation(fields: [flatId], references: [id])
+  amenity   Amenity @relation(fields: [amenityId], references: [id])
+
+  @@id([flatId, amenityId]) // Composite primary key
+
+  @@map("Flat_Amenities") // Maps to the junction table name
+}
